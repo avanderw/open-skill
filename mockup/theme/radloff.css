@@ -1,0 +1,28 @@
+:root {
+  /* Core brand colors extracted from https://www.radsquash.com */
+  --brand-primary: #f05a1a;
+  --brand-primary-strong: #c63d08;
+  --brand-primary-logo: #f15b22;
+
+  --brand-black: #050505;
+  --brand-ink: #101010;
+  --brand-charcoal: #151515;
+  --brand-logo-charcoal: #231f20;
+  --brand-muted: #777777;
+  --brand-paper: #f4f1ec;
+  --brand-white: #ffffff;
+
+  --brand-line-light: rgba(255, 255, 255, 0.18);
+  --brand-line-dark: rgba(0, 0, 0, 0.12);
+
+  /* Semantic aliases for design docs */
+  --theme-bg: var(--brand-black);
+  --theme-surface: var(--brand-charcoal);
+  --theme-surface-alt: var(--brand-paper);
+  --theme-text: var(--brand-white);
+  --theme-text-muted: rgba(255, 255, 255, 0.82);
+  --theme-text-on-light: var(--brand-ink);
+  --theme-accent: var(--brand-primary);
+  --theme-accent-hover: var(--brand-primary-strong);
+  --theme-border: var(--brand-line-light);
+}

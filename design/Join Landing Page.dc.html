@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #2f70ef 0%, #1655d1 100%); color: #1f272e; min-height: 100vh; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<!-- Invalid/Expired Link State -->
+<sc-if value="{{ isInvalidState }}" hint-placeholder-val="{{ false }}">
+  <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+    <div style="text-align: center; max-width: 400px;">
+      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255, 255, 255, 0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; font-weight: 700;">
+        ✕
+      </div>
+      <h1 style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px;">Link Expired or Invalid</h1>
+      <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">This invite link may have expired or is no longer valid. Please ask the community owner for a new link.</p>
+      <a href="/" style="display: inline-block; padding: 12px 24px; background: white; color: #2f70ef; border-radius: 100px; font-weight: 700; text-decoration: none; transition: all 0.2s;"
+         onMouseEnter="{{ (e) => e.target.style.transform = 'scale(1.05)' }}"
+         onMouseLeave="{{ (e) => e.target.style.transform = 'scale(1)' }}"
+      >
+        Return to Home
+      </a>
+    </div>
+  </div>
+</sc-if>
+
+<!-- Already a Member State -->
+<sc-if value="{{ isAlreadyMemberState }}" hint-placeholder-val="{{ false }}">
+  <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+    <div style="text-align: center; max-width: 400px;">
+      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255, 255, 255, 0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; font-weight: 700;">
+        ✓
+      </div>
+      <h1 style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px;">You're Already a Member</h1>
+      <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">Redirecting to {{ communityName }} dashboard...</p>
+      <div style="display: inline-block; padding: 12px 24px; background: white; color: #2f70ef; border-radius: 100px; font-weight: 700;">
+        ⟳ Loading
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- Pending Request State -->
+<sc-if value="{{ isPendingRequestState }}" hint-placeholder-val="{{ false }}">
+  <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+    <div style="text-align: center; max-width: 400px;">
+      <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255, 255, 255, 0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 36px; font-weight: 700;">
+        ⏳
+      </div>
+      <h1 style="font-size: 24px; font-weight: 700; color: white; margin-bottom: 8px;">Request Sent</h1>
+      <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">Your request to join {{ communityName }} is pending approval. The community owner will review it shortly.</p>
+      <a href="/" style="display: inline-block; padding: 12px 24px; background: white; color: #2f70ef; border-radius: 100px; font-weight: 700; text-decoration: none; transition: all 0.2s;"
+         onMouseEnter="{{ (e) => e.target.style.transform = 'scale(1.05)' }}"
+         onMouseLeave="{{ (e) => e.target.style.transform = 'scale(1)' }}"
+      >
+        Back Home
+      </a>
+    </div>
+  </div>
+</sc-if>
+
+<!-- Main Join State (valid link, not a member) -->
+<sc-if value="{{ isValidState }}" hint-placeholder-val="{{ true }}">
+  <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+    <div style="max-width: 500px; width: 100%;">
+      <!-- Card -->
+      <div style="background: white; border-radius: 16px; padding: 40px 32px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);">
+        
+        <!-- Community Header -->
+        <div style="margin-bottom: 32px;">
+          <div style="width: 64px; height: 64px; margin-bottom: 16px; background: linear-gradient(135deg, #2f70ef, #1655d1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 24px;">
+            {{ communityInitials }}
+          </div>
+          <h1 style="font-size: 28px; font-weight: 700; color: #1f272e; margin-bottom: 4px;">{{ communityName }}</h1>
+          <p style="font-size: 14px; color: #5f6b74;">{{ rulesetName }}</p>
+        </div>
+
+        <!-- Community Stats -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #e0e5f2;">
+          <div>
+            <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 4px;">Members</p>
+            <p style="font-size: 24px; font-weight: 700; color: #1f272e;">{{ memberCount }}</p>
+          </div>
+          <div>
+            <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 4px;">Join Mode</p>
+            <p style="font-size: 14px; font-weight: 600; color: #2f70ef;">{{ joinModeLabel }}</p>
+          </div>
+        </div>
+
+        <!-- Auth State: Not Logged In -->
+        <sc-if value="{{ userNotLoggedIn }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-bottom: 24px;">
+            <p style="font-size: 12px; color: #5f6b74; margin-bottom: 16px; text-align: center;">Sign up or log in to join</p>
+            
+            <!-- OAuth Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+              <button
+                onClick="{{ () => signupWithDiscord() }}"
+                style="padding: 12px 24px; background: #5865F2; color: white; border: none; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;"
+                style-hover="background: #4752C4;"
+              >
+                <span>🎮</span> Continue with Discord
+              </button>
+              <button
+                onClick="{{ () => signupWithEmail() }}"
+                style="padding: 12px 24px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                style-hover="background: #f0f4ff;"
+              >
+                Continue with Email
+              </button>
+            </div>
+
+            <p style="font-size: 11px; color: #8695a7; text-align: center;">Already have an account? <a href="/login" style="color: #2f70ef; font-weight: 600;">Log in</a></p>
+          </div>
+        </sc-if>
+
+        <!-- Auth State: Logged In -->
+        <sc-if value="{{ userLoggedIn }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button
+              onClick="{{ () => joinCommunity() }}"
+              style="padding: 14px 24px; background: #2f70ef; color: white; border: none; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; width: 100%;"
+              style-hover="background: #1655d1;"
+            >
+              {{ joinButtonLabel }}
+            </button>
+            <p style="font-size: 11px; color: #8695a7; text-align: center;">Logged in as {{ userEmail }}</p>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- Footer Text -->
+      <p style="text-align: center; font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 24px;">Open-Skill • Competitive Ranking Platform</p>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    linkState: 'valid', // valid, invalid, alreadyMember, pendingRequest
+    isLoggedIn: false,
+  };
+
+  renderVals() {
+    const communityData = {
+      name: 'Apex Legends Competitive',
+      ruleset: '1v1 Competitive',
+      memberCount: 24,
+      joinMode: 'gated',
+      initials: 'AL',
+    };
+
+    const isUserLoggedIn = this.state.isLoggedIn;
+    const linkValid = this.state.linkState === 'valid';
+    const isInvalidState = this.state.linkState === 'invalid';
+    const isAlreadyMemberState = this.state.linkState === 'alreadyMember';
+    const isPendingRequestState = this.state.linkState === 'pendingRequest';
+
+    return {
+      linkState: this.state.linkState,
+      isInvalidState: isInvalidState,
+      isAlreadyMemberState: isAlreadyMemberState,
+      isPendingRequestState: isPendingRequestState,
+      isValidState: linkValid,
+      communityName: communityData.name,
+      communityInitials: communityData.initials,
+      rulesetName: communityData.ruleset,
+      memberCount: communityData.memberCount,
+      joinModeLabel: communityData.joinMode === 'open' ? 'Open' : 'Gated',
+      userNotLoggedIn: linkValid && !isUserLoggedIn,
+      userLoggedIn: linkValid && isUserLoggedIn,
+      userEmail: 'player@example.com',
+      joinButtonLabel: communityData.joinMode === 'open' ? 'Join Community' : 'Request to Join',
+      signupWithDiscord: () => {
+        console.log('Signup with Discord');
+        this.setState({ isLoggedIn: true });
+      },
+      signupWithEmail: () => {
+        console.log('Signup with Email');
+        this.setState({ isLoggedIn: true });
+      },
+      joinCommunity: () => {
+        console.log('Join community:', communityData.name);
+        if (communityData.joinMode === 'gated') {
+          this.setState({ linkState: 'pendingRequest' });
+        } else {
+          this.setState({ linkState: 'alreadyMember' });
+        }
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

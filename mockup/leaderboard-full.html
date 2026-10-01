@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Full Leaderboard - Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 26, 0.16), transparent 30%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+
+    .page-wrap { min-height: 100vh; padding: 28px 20px 40px; }
+    .page-inner { max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .header-card { padding: 24px; }
+    .label-caps {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+      margin-bottom: 8px;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--theme-text);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .chip-link:hover {
+      color: var(--theme-text);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .header-copy {
+      font-size: 15px;
+      color: var(--theme-text-muted);
+      line-height: 24px;
+      max-width: 760px;
+    }
+
+    .controls-card { padding: 16px; }
+
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .mode-tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--theme-text-muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .mode-tab.active {
+      border-color: rgba(240, 90, 26, 0.5);
+      background: rgba(240, 90, 26, 0.14);
+      color: #ffd9c9;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 11px;
+      color: var(--brand-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 800;
+    }
+
+    .text-input,
+    .select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--theme-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--theme-text);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .text-input:focus,
+    .select:focus {
+      outline: none;
+      border-color: var(--theme-accent);
+      box-shadow: 0 0 0 3px rgba(240, 90, 26, 0.16);
+    }
+
+    .select option { background: #121212; color: var(--theme-text); }
+
+    .table-card { padding: 0; overflow: hidden; }
+
+    .table-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 13px;
+      color: var(--theme-text-muted);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    thead tr { background: rgba(255, 255, 255, 0.04); }
+
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--brand-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--theme-border);
+      font-size: 14px;
+      color: var(--theme-text);
+      vertical-align: middle;
+    }
+
+    .rank { width: 70px; font-weight: 800; color: var(--theme-accent); }
+
+    .player {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 220px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .player-meta { display: flex; flex-direction: column; gap: 1px; }
+    .player-name { font-size: 14px; font-weight: 700; color: var(--theme-text); }
+    .player-note { font-size: 11px; color: var(--brand-muted); }
+
+    .rating, .matches { text-align: center; font-weight: 700; }
+    .trend { text-align: center; font-weight: 700; }
+    .trend.up { color: #6ee7b7; }
+    .trend.down { color: #f88; }
+    .trend.flat { color: var(--brand-muted); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 14px 16px;
+      border-top: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pager-left,
+    .pager-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--theme-text);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: rgba(255, 255, 255, 0.08); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .page-chip {
+      min-width: 34px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--theme-text);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .page-chip.active {
+      border-color: rgba(240, 90, 26, 0.5);
+      background: rgba(240, 90, 26, 0.14);
+      color: #ffd9c9;
+    }
+
+    .page-status {
+      font-size: 12px;
+      color: var(--theme-text-muted);
+      font-weight: 700;
+    }
+
+    @media (max-width: 980px) {
+      .control-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .header-card,
+      .controls-card { padding: 14px; }
+      .control-grid { grid-template-columns: 1fr; }
+      .pagination { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-inner">
+      <section class="card header-card">
+        <div class="top-nav">
+          <div class="nav-links">
+            <a class="chip-link" href="./leaderboard-logged-in.html">Back to signed-in leaderboard</a>
+            <a class="chip-link" href="./leaderboard-logged-out.html">Back to guest leaderboard</a>
+            <a class="chip-link" href="./community-logged-in.html">My communities</a>
+          </div>
+        </div>
+
+        <p class="label-caps">Rankings explorer</p>
+        <h1 style="font-size: 34px; font-weight: 700; line-height: 1.1; margin-bottom: 8px;">Full Leaderboard</h1>
+        <p class="header-copy">
+          Browse complete standings with paging, filters, and mode switches. Use controls below to drill into the players you want.
+        </p>
+      </section>
+
+      <section class="card controls-card">
+        <div class="mode-tabs" aria-label="Mode tabs">
+          <button class="mode-tab" data-mode="1v1">1v1</button>
+          <button class="mode-tab" data-mode="team">Team</button>
+          <button class="mode-tab" data-mode="ffa">FFA</button>
+        </div>
+
+        <div class="control-grid">
+          <div class="field">
+            <label for="search">Search player or team</label>
+            <input id="search" class="text-input" type="text" placeholder="Type a name...">
+          </div>
+          <div class="field">
+            <label for="sort">Sort by</label>
+            <select id="sort" class="select">
+              <option value="rank">Rank ascending</option>
+              <option value="rating">Rating high to low</option>
+              <option value="matches">Most matches</option>
+              <option value="trend">Trend high to low</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="region">Region</label>
+            <select id="region" class="select">
+              <option value="all">All regions</option>
+              <option value="za">South Africa</option>
+              <option value="eu">Europe</option>
+              <option value="na">North America</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="season">Season</label>
+            <select id="season" class="select">
+              <option value="s13">Season 13</option>
+              <option value="s12">Season 12</option>
+              <option value="s11">Season 11</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="per-page">Rows per page</label>
+            <select id="per-page" class="select">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card table-card">
+        <div class="table-meta">
+          <span id="result-count">Showing 0 results</span>
+          <span id="meta-mode">Mode: 1v1</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <div class="pager-left">
+            <button class="btn" id="first-page">First</button>
+            <button class="btn" id="prev-page">Prev</button>
+            <div id="page-chips"></div>
+            <button class="btn" id="next-page">Next</button>
+            <button class="btn" id="last-page">Last</button>
+          </div>
+          <div class="pager-right">
+            <span class="page-status" id="page-status">Page 1 of 1</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const modes = ["1v1", "team", "ffa"];
+    const names = ["IronCrest", "LunarEcho", "PixelMaster", "VortexKing", "NovaRift", "TempestRook", "BlazeLock", "DriftKnight", "QuantaEdge", "ShadowByte", "EchoKnight", "SolarKnight", "NightVolt", "ZephyrBolt", "CrestRunner", "Kairo", "FluxNova", "Aether Grid", "Rogue Battalion", "Phantom Force"];
+
+    function initialsFromName(name) {
+      return name.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase();
+    }
+
+    function buildData() {
+      const output = [];
+      for (let i = 1; i <= 140; i += 1) {
+        const mode = modes[i % 3];
+        const base = mode === "1v1" ? 1850 : mode === "team" ? 1950 : 1750;
+        const rating = base - Math.floor(i * 4.2);
+        const trendRaw = (i % 9) - 4;
+        const trend = trendRaw * 7;
+        const region = i % 4 === 0 ? "eu" : i % 5 === 0 ? "na" : "za";
+        const displayName = names[i % names.length] + (i > names.length ? " " + i : "");
+
+        output.push({
+          rank: i,
+          name: displayName,
+          initials: initialsFromName(displayName),
+          rating,
+          trend,
+          matches: 8 + (i % 40),
+          region,
+          mode
+        });
+      }
+      return output;
+    }
+
+    const allRows = buildData();
+    let activeMode = "1v1";
+    let page = 1;
+
+    const elRows = document.getElementById("rows");
+    const elSearch = document.getElementById("search");
+    const elSort = document.getElementById("sort");
+    const elRegion = document.getElementById("region");
+    const elPerPage = document.getElementById("per-page");
+    const elResultCount = document.getElementById("result-count");
+    const elMode = document.getElementById("meta-mode");
+    const elPageStatus = document.getElementById("page-status");
+    const elPageChips = document.getElementById("page-chips");
+
+    function parseModeFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const mode = (params.get("mode") || "").toLowerCase();
+      if (modes.includes(mode)) {
+        activeMode = mode;
+      }
+    }
+
+    function filterRows() {
+      const q = elSearch.value.trim().toLowerCase();
+      const region = elRegion.value;
+      let rows = allRows.filter(r => r.mode === activeMode);
+
+      if (q) {
+        rows = rows.filter(r => r.name.toLowerCase().includes(q));
+      }
+      if (region !== "all") {
+        rows = rows.filter(r => r.region === region);
+      }
+
+      const sortBy = elSort.value;
+      if (sortBy === "rating") {
+        rows.sort((a, b) => b.rating - a.rating);
+      } else if (sortBy === "matches") {
+        rows.sort((a, b) => b.matches - a.matches);
+      } else if (sortBy === "trend") {
+        rows.sort((a, b) => b.trend - a.trend);
+      } else {
+        rows.sort((a, b) => a.rank - b.rank);
+      }
+
+      return rows;
+    }
+
+    function renderPagination(totalPages) {
+      const maxChips = 5;
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, start + maxChips - 1);
+      start = Math.max(1, end - maxChips + 1);
+
+      const chips = [];
+      for (let i = start; i <= end; i += 1) {
+        chips.push(`<button class="page-chip${i === page ? " active" : ""}" data-page="${i}">${i}</button>`);
+      }
+      elPageChips.innerHTML = chips.join("");
+
+      elPageChips.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          page = Number(btn.dataset.page);
+          render();
+        });
+      });
+
+      document.getElementById("first-page").disabled = page <= 1;
+      document.getElementById("prev-page").disabled = page <= 1;
+      document.getElementById("next-page").disabled = page >= totalPages;
+      document.getElementById("last-page").disabled = page >= totalPages;
+    }
+
+    function render() {
+      const filtered = filterRows();
+      const perPage = Number(elPerPage.value);
+      const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+      if (page > totalPages) {
+        page = totalPages;
+      }
+
+      const start = (page - 1) * perPage;
+      const visible = filtered.slice(start, start + perPage);
+
+      elRows.innerHTML = visible.map(r => {
+        const trendClass = r.trend > 0 ? "up" : r.trend < 0 ? "down" : "flat";
+        const trendText = r.trend > 0 ? `+${r.trend}` : `${r.trend}`;
+        return `
+          <tr>
+            <td class="rank">${r.rank}</td>
+            <td>
+              <div class="player">
+                <span class="avatar">${r.initials}</span>
+                <div class="player-meta">
+                  <span class="player-name">${r.name}</span>
+                  <span class="player-note">${r.region.toUpperCase()} region</span>
+                </div>
+              </div>
+            </td>
+            <td class="rating">${r.rating}</td>
+            <td class="trend ${trendClass}">${trendText}</td>
+            <td class="matches">${r.matches}</td>
+          </tr>
+        `;
+      }).join("");
+
+      elResultCount.textContent = `Showing ${visible.length} of ${filtered.length} results`;
+      elMode.textContent = `Mode: ${activeMode.toUpperCase()}`;
+      elPageStatus.textContent = `Page ${page} of ${totalPages}`;
+      renderPagination(totalPages);
+
+      document.querySelectorAll(".mode-tab").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mode === activeMode);
+      });
+    }
+
+    document.querySelectorAll(".mode-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeMode = btn.dataset.mode;
+        page = 1;
+        const params = new URLSearchParams(window.location.search);
+        params.set("mode", activeMode);
+        history.replaceState({}, "", `./leaderboard-full.html?${params.toString()}`);
+        render();
+      });
+    });
+
+    [elSearch, elSort, elRegion, elPerPage].forEach(el => {
+      el.addEventListener("input", () => { page = 1; render(); });
+      el.addEventListener("change", () => { page = 1; render(); });
+    });
+
+    document.getElementById("first-page").addEventListener("click", () => { page = 1; render(); });
+    document.getElementById("prev-page").addEventListener("click", () => { page = Math.max(1, page - 1); render(); });
+    document.getElementById("next-page").addEventListener("click", () => { page = page + 1; render(); });
+    document.getElementById("last-page").addEventListener("click", () => {
+      const total = Math.max(1, Math.ceil(filterRows().length / Number(elPerPage.value)));
+      page = total;
+      render();
+    });
+
+    parseModeFromUrl();
+    render();
+  </script>
+</body>
+</html>

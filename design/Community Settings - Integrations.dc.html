@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #1f272e;">Integrations & API</h1>
+      <p style="font-size: 14px; color: #5f6b74; margin-top: 4px;">Admins only • Connect external services and automate workflows</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="flex: 1; padding: 40px 20px; overflow-y: auto;">
+    <div style="max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
+      
+      <!-- Discord Integration -->
+      <div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 24px;">Discord</h2>
+        <div style="padding: 24px; background: white; border: 1px solid #e0e5f2; border-radius: 8px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+            <div style="flex: 1;">
+              <h3 style="font-size: 14px; font-weight: 600; color: #1f272e; margin-bottom: 8px;">{{ discordTitle }}</h3>
+              <sc-if value="{{ discordConnected }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <p style="font-size: 12px; color: #5f6b74; margin-bottom: 8px;">Server: <strong>{{ discordServerName }}</strong></p>
+                  <p style="font-size: 11px; color: #5f6b74;">Bot status: <span style="color: #10b981; font-weight: 600;">🟢 Active</span></p>
+                </div>
+              </sc-if>
+              <sc-if value="{{ !discordConnected }}" hint-placeholder-val="{{ true }}">
+                <p style="font-size: 12px; color: #5f6b74;">Link your Discord server to post leaderboard updates and match results.</p>
+              </sc-if>
+            </div>
+            <button
+              onClick="{{ () => toggleDiscordConnect() }}"
+              style="padding: 10px 20px; background: {{ discordConnected ? '#fff' : '#5865f2' }}; color: {{ discordConnected ? '#ef4444' : '#fff' }}; border: 1px solid {{ discordConnected ? '#fca5a5' : '#5865f2' }}; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;"
+              style-hover="background: {{ discordConnected ? '#ffe0e0' : '#4752c4' }};"
+            >
+              {{ discordButtonLabel }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys -->
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; color: #1f272e;">API Keys</h2>
+          <button
+            onClick="{{ () => showCreateKeyModal() }}"
+            style="padding: 10px 20px; background: #2f70ef; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;"
+            style-hover="background: #1655d1;"
+          >
+            + Create Key
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{ apiKeys }}" as="key" hint-placeholder-count="2">
+            <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <div style="flex: 1; min-width: 0;">
+                <p style="font-size: 14px; font-weight: 600; color: #1f272e; margin-bottom: 4px;">{{ key.name }}</p>
+                <p style="font-size: 11px; color: #5f6b74;">{{ key.key }} • Created {{ key.created }} • Scope: {{ key.scope }}</p>
+              </div>
+              <button
+                onClick="{{ () => revokeKey(key.id) }}"
+                style="padding: 8px 16px; background: white; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;"
+                style-hover="background: #ffe0e0;"
+              >
+                Revoke
+              </button>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ apiKeys.length === 0 }}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 40px 24px; background: white; border: 1px dashed #d0d7e0; border-radius: 8px; text-align: center;">
+              <p style="font-size: 13px; color: #5f6b74;">No API keys created yet.</p>
+              <p style="font-size: 12px; color: #8695a7; margin-top: 4px;">Create one to programmatically access your community data.</p>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- Webhooks -->
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; color: #1f272e;">Webhooks</h2>
+          <button
+            onClick="{{ () => showCreateWebhookModal() }}"
+            style="padding: 10px 20px; background: #2f70ef; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;"
+            style-hover="background: #1655d1;"
+          >
+            + Add Webhook
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{ webhooks }}" as="webhook" hint-placeholder-count="2">
+            <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <div style="flex: 1; min-width: 0;">
+                  <p style="font-size: 12px; color: #5f6b74; word-break: break-all;">{{ webhook.url }}</p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                  <button
+                    onClick="{{ () => testWebhook(webhook.id) }}"
+                    style="padding: 8px 12px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;"
+                    style-hover="background: #f0f4ff;"
+                  >
+                    Test
+                  </button>
+                  <button
+                    onClick="{{ () => removeWebhook(webhook.id) }}"
+                    style="padding: 8px 12px; background: white; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;"
+                    style-hover="background: #ffe0e0;"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <sc-for list="{{ webhook.events }}" as="event" hint-placeholder-count="2">
+                  <span style="display: inline-block; font-size: 11px; padding: 4px 8px; background: #f0f4ff; color: #2f70ef; border-radius: 4px; font-weight: 500;">{{ event }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ webhooks.length === 0 }}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 40px 24px; background: white; border: 1px dashed #d0d7e0; border-radius: 8px; text-align: center;">
+              <p style="font-size: 13px; color: #5f6b74;">No webhooks configured yet.</p>
+              <p style="font-size: 12px; color: #8695a7; margin-top: 4px;">Add one to receive real-time events about matches and rating changes.</p>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 24px;">Integration Activity</h2>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 51, 160, 0.08);">
+            <thead>
+              <tr style="background: #f8fafb; border-bottom: 1px solid #e0e5f2;">
+                <th style="padding: 16px; text-align: left; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Event</th>
+                <th style="padding: 16px; text-align: left; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Service</th>
+                <th style="padding: 16px; text-align: left; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Timestamp</th>
+                <th style="padding: 16px; text-align: center; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ activityLog }}" as="log" hint-placeholder-count="3">
+                <tr style="border-bottom: 1px solid #e0e5f2;">
+                  <td style="padding: 16px; font-size: 13px; color: #1f272e;">{{ log.event }}</td>
+                  <td style="padding: 16px; font-size: 13px; color: #5f6b74;">{{ log.service }}</td>
+                  <td style="padding: 16px; font-size: 13px; color: #5f6b74;">{{ log.timestamp }}</td>
+                  <td style="padding: 16px; text-align: center;">
+                    <span style="display: inline-block; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; background: {{ log.status === 'success' ? '#d1fae5' : '#fee2e2' }}; color: {{ log.status === 'success' ? '#047857' : '#991b1b' }};">
+                      {{ log.statusBadge }}
+                    </span>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    discordConnected: true,
+    discordServerName: 'Apex Legends Competitive',
+    apiKeys: [
+      { id: 1, name: 'Match Reporter', key: 'sk_live_••••••••••••4a2f', created: 'Jan 15, 2024', scope: 'write' },
+      { id: 2, name: 'Leaderboard Read', key: 'sk_live_••••••••••••8b3c', created: 'Jan 10, 2024', scope: 'read' },
+    ],
+    webhooks: [
+      { id: 1, url: 'https://your-service.com/webhooks/matches', events: ['match-completed', 'rating-changed'] },
+      { id: 2, url: 'https://discord.com/api/webhooks/12345/abcde', events: ['leaderboard-updated'] },
+    ],
+    activityLog: [
+      { id: 1, event: 'Match reported', service: 'API (Match Reporter)', timestamp: '2 minutes ago', status: 'success' },
+      { id: 2, event: 'Webhook: match-completed', service: 'Webhook', timestamp: '2 minutes ago', status: 'success' },
+      { id: 3, event: 'Leaderboard fetched', service: 'API (Leaderboard Read)', timestamp: '5 minutes ago', status: 'success' },
+      { id: 4, event: 'Discord message posted', service: 'Discord', timestamp: '7 minutes ago', status: 'success' },
+      { id: 5, event: 'Webhook: rating-changed', service: 'Webhook', timestamp: '15 minutes ago', status: 'failed' },
+      { id: 6, event: 'Leaderboard fetched', service: 'API (Leaderboard Read)', timestamp: '1 hour ago', status: 'success' },
+    ],
+  };
+
+  renderVals() {
+    return {
+      discordConnected: this.state.discordConnected,
+      discordTitle: this.state.discordConnected ? 'Discord Server Connected' : 'Connect a Discord Server',
+      discordButtonLabel: this.state.discordConnected ? 'Disconnect' : 'Connect',
+      discordServerName: this.state.discordServerName,
+      apiKeys: this.state.apiKeys,
+      webhooks: this.state.webhooks,
+      activityLog: this.state.activityLog.map(log => ({
+        ...log,
+        statusBadge: log.status === 'success' ? '✓ Success' : '✗ Failed',
+      })),
+      toggleDiscordConnect: () => {
+        this.setState(s => ({ discordConnected: !s.discordConnected }));
+        console.log('Discord toggled:', !this.state.discordConnected);
+      },
+      showCreateKeyModal: () => {
+        console.log('Show create API key modal');
+      },
+      revokeKey: (keyId) => {
+        this.setState(s => ({
+          apiKeys: s.apiKeys.filter(k => k.id !== keyId),
+        }));
+        console.log('Key revoked:', keyId);
+      },
+      showCreateWebhookModal: () => {
+        console.log('Show create webhook modal');
+      },
+      testWebhook: (webhookId) => {
+        console.log('Testing webhook:', webhookId);
+      },
+      removeWebhook: (webhookId) => {
+        this.setState(s => ({
+          webhooks: s.webhooks.filter(w => w.id !== webhookId),
+        }));
+        console.log('Webhook removed:', webhookId);
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

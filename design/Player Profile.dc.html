@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header / Profile Card -->
+  <div style="padding: 40px 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <!-- Profile Header -->
+      <div style="display: flex; align-items: flex-start; gap: 24px; margin-bottom: 32px;">
+        <div style="width: 80px; height: 80px; border-radius: 12px; background: linear-gradient(135deg, #2f70ef, #1655d1); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 32px; flex-shrink: 0;">
+          {{ playerInitials }}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <h1 style="font-size: 28px; font-weight: 700; color: #1f272e; margin-bottom: 4px;">{{ playerName }}</h1>
+          <p style="font-size: 14px; color: #5f6b74; margin-bottom: 12px;">Joined {{ joinedDate }}</p>
+          
+          <!-- Linked Identities -->
+          <sc-if value="{{ hasLinkedIdentity }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12px; color: #8695a7;">Linked:</span>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f8fafb; border-radius: 20px; border: 1px solid #e0e5f2;">
+                <span style="font-size: 14px;">🎮</span>
+                <span style="font-size: 12px; font-weight: 600; color: #1f272e;">{{ linkedIdentity }}</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- Rating & Rank Stats -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+        <!-- Current Rating -->
+        <sc-if value="{{ isProvisionalState }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px;">
+            <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Rating Status</p>
+            <p style="font-size: 24px; font-weight: 700; color: #856404;">Provisional</p>
+            <p style="font-size: 12px; color: #856404; margin-top: 4px;">{{ matchCount }} match{{ matchCountPlural }}</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ !isProvisionalState }}" hint-placeholder-val="{{ true }}">
+          <div style="padding: 20px; background: #f0f4ff; border: 1px solid #d6e3fe; border-radius: 12px;">
+            <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Current Rating</p>
+            <p style="font-size: 32px; font-weight: 700; color: #2f70ef;">{{ currentRating }}</p>
+            <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">Verified • {{ matchCount }} match{{ matchCountPlural }}</p>
+          </div>
+        </sc-if>
+
+        <!-- Rank -->
+        <div style="padding: 20px; background: #f0f4ff; border: 1px solid #d6e3fe; border-radius: 12px;">
+          <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Rank</p>
+          <p style="font-size: 32px; font-weight: 700; color: #2f70ef;">#{{ playerRank }}</p>
+          <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">of {{ communitySize }} members</p>
+        </div>
+
+        <!-- Win Rate -->
+        <div style="padding: 20px; background: #f0f4ff; border: 1px solid #d6e3fe; border-radius: 12px;">
+          <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Win Rate</p>
+          <p style="font-size: 32px; font-weight: 700; color: #2f70ef;">{{ winRate }}</p>
+          <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">{{ wins }} wins, {{ losses }} losses</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="flex: 1; padding: 40px 20px; overflow-y: auto;">
+    <div style="max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+      
+      <!-- Left: Rating History Chart -->
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 16px;">Rating History</h2>
+        <div style="padding: 20px; background: white; border: 1px solid #e0e5f2; border-radius: 12px; min-height: 250px;">
+          <svg width="100%" height="200" style="margin-bottom: 12px;" viewBox="0 0 300 150">
+            <!-- Grid lines -->
+            <line x1="0" y1="30" x2="300" y2="30" stroke="#e0e5f2" stroke-width="1"/>
+            <line x1="0" y1="75" x2="300" y2="75" stroke="#e0e5f2" stroke-width="1"/>
+            <line x1="0" y1="120" x2="300" y2="120" stroke="#e0e5f2" stroke-width="1"/>
+            
+            <!-- Sparkline trend (upward) -->
+            <polyline points="10,120 40,100 70,85 100,70 130,55 160,40 190,35 220,30 250,25 280,20" 
+                      fill="none" stroke="#2f70ef" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            
+            <!-- Points -->
+            <circle cx="10" cy="120" r="3" fill="#2f70ef"/>
+            <circle cx="280" cy="20" r="3" fill="#2f70ef"/>
+          </svg>
+          <p style="font-size: 11px; color: #8695a7; text-align: center;">Last 30 days</p>
+        </div>
+      </div>
+
+      <!-- Right: Recent Matches -->
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 16px;">Recent Matches</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{ recentMatches }}" as="match" hint-placeholder-count="3">
+            <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1; min-width: 0;">
+                <p style="font-size: 13px; font-weight: 600; color: #1f272e;">{{ match.description }}</p>
+                <p style="font-size: 11px; color: #5f6b74; margin-top: 2px;">{{ match.timestamp }}</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-left: 16px;">
+                <div style="text-align: right;">
+                  <p style="font-size: 14px; font-weight: 700; color: #1f272e;">{{ match.result }}</p>
+                  <span style="display: inline-block; font-size: 11px; padding: 2px 6px; background: {{ match.resultBgColor }}; color: {{ match.resultColor }}; border-radius: 4px; font-weight: 600;">{{ match.changeSign }}{{ match.changeAmount }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    playerProfile: null,
+    isNewPlayer: false,
+  };
+
+  renderVals() {
+    const playerData = {
+      name: 'shadowPlay',
+      initials: 'SP',
+      joinedDate: 'Mar 15, 2024',
+      linkedIdentity: 'shadowPlay#1234 (Discord)',
+      hasLinkedId: true,
+      currentRating: 1842,
+      isProvisional: false,
+      matchCount: 24,
+      playerRank: 1,
+      communitySize: 24,
+      wins: 18,
+      losses: 6,
+      winRate: '75%',
+    };
+
+    const mockRecentMatches = [
+      {
+        description: 'vs ProGamer92',
+        timestamp: '2 hours ago',
+        result: 'WIN',
+        resultColor: '#10b981',
+        resultBgColor: '#d1fae5',
+        changeSign: '+',
+        changeAmount: '18',
+      },
+      {
+        description: 'vs LunarEcho',
+        timestamp: '1 day ago',
+        result: 'LOSS',
+        resultColor: '#ef4444',
+        resultBgColor: '#fee2e2',
+        changeSign: '-',
+        changeAmount: '12',
+      },
+      {
+        description: 'Team match (Team A)',
+        timestamp: '3 days ago',
+        result: 'WIN',
+        resultColor: '#10b981',
+        resultBgColor: '#d1fae5',
+        changeSign: '+',
+        changeAmount: '8',
+      },
+    ];
+
+    const matchWord = playerData.matchCount === 1 ? '' : 'es';
+
+    return {
+      playerName: playerData.name,
+      playerInitials: playerData.initials,
+      joinedDate: playerData.joinedDate,
+      hasLinkedIdentity: playerData.hasLinkedId,
+      linkedIdentity: playerData.linkedIdentity,
+      isProvisionalState: playerData.isProvisional,
+      currentRating: playerData.currentRating.toString(),
+      matchCount: playerData.matchCount.toString(),
+      matchCountPlural: matchWord,
+      playerRank: playerData.playerRank.toString(),
+      communitySize: playerData.communitySize.toString(),
+      wins: playerData.wins.toString(),
+      losses: playerData.losses.toString(),
+      winRate: playerData.winRate,
+      recentMatches: mockRecentMatches,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

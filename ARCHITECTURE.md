@@ -1,0 +1,44 @@
+# Architecture — Open-Skill
+
+## Repo layout
+
+| Path | Owner | Purpose |
+|---|---|---|
+| `app/` | SvelteKit web app (static adapter) | The player-facing UI |
+| `design/` | Figma `design` exports (dc-html) + Capitec design system + scripts + design tokens | Source of truth for theme & components |
+| `mockup/` | Hand-linked dark-theme HTML prototypes (12 pages) | Pagerless spec for Svelte port; ALSO the homepage for the visual design |
+| `service/` | Go backend | Ranking API, match reporting, SQLite persistence, auth stub |
+| Root `MIGRATION-*.md` and `kanban-*.md` | Planning | Historical implementation plans |
+
+## Ports/contracts
+
+- `app` speaks **SvelteKit**; build static via adapter-static (`prerender=false`).
+- `app` calls `service` at **`/api/**`** — in dev, SvelteKit `server.proxy` (vite.config.ts) proxies `/api` → `localhost:8080`; in prod, nginx serves `app/build` and reverse-proxies `/api` → `service:8080`.
+
+## Service
+
+- `service/go.mod`
+- `service/cmd/open-skill-service/main.go` — `:8080` entrypoint
+- `service/internal/api` — HTTP handlers and demo identity headers
+- `service/internal/store` — SQLite schema, communities, history, matches, and ratings
+- SQLite via `modernc.org/sqlite` (stdlib driver, no cgo)
+
+## Runtime Decisions
+
+- Development `/api` requests use the Vite proxy to `localhost:8080`.
+- Production nginx serves `app/build` and proxies `/api` to `service:8080`.
+- The Go module path is `open-skill/service`.
+- SQLite uses `modernc.org/sqlite` without cgo.
+- Invite codes use the documented human-readable code generator in the API.
+- Authentication is a demo identity stub. Allowed CORS origins are configured with `OPEN_SKILL_ALLOWED_ORIGINS`.
+
+## Domain Rules
+
+- Ratings are keyed by `community_id`, `player_id`, and mode.
+- Supported modes are `1v1`, `team`, and `ffa`.
+- Mode is derived from participant/team configuration when a match is reported.
+- A player is eligible when the player's owning user is in `community_members` for the match community.
+- The match store validates reporter membership and participant eligibility inside the write transaction.
+- There is no separate `community_players` projection.
+
+Open questions and historical implementation details live in the investigation and migration documents linked from [README.md](README.md).

@@ -1,0 +1,5 @@
+/* dockerignore for the app image */
+node_modules
+.svelte-kit
+build
+test.db*

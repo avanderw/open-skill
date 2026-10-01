@@ -1,0 +1,7 @@
+/* dockerignore for the service image */
+.git
+*.db
+*.db-wal
+*.db-shm
+test.db
+service/test.db*

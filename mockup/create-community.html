@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Community - Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 26, 0.14), transparent 28%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+    button, input { font: inherit; }
+
+    .label-caps {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 28px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .inner-surface {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--theme-border);
+      border-radius: 20px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--theme-text);
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .text-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+    .text-input:focus {
+      outline: none;
+      border-color: var(--theme-accent);
+      box-shadow: 0 0 0 3px rgba(240, 90, 26, 0.18);
+    }
+
+    .btn-primary {
+      padding: 14px 24px;
+      background: var(--theme-accent);
+      color: var(--brand-white);
+      border: none;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-primary:hover { background: var(--theme-accent-hover); }
+
+    .btn-secondary {
+      padding: 14px 24px;
+      background: transparent;
+      color: var(--theme-accent);
+      border: 1px solid var(--theme-accent);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-secondary:hover { background: rgba(240, 90, 26, 0.1); }
+
+    .btn-toggle {
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--theme-accent);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-toggle:hover {
+      border-color: var(--theme-accent);
+      background: rgba(240, 90, 26, 0.1);
+    }
+
+    .alert-success {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(6, 118, 71, 0.18);
+      border: 1px solid rgba(6, 118, 71, 0.45);
+      color: #6ee7b7;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--theme-border);
+      flex-wrap: wrap;
+    }
+    .summary-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .themed-checkbox {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--theme-accent);
+      cursor: pointer;
+    }
+
+    .page-wrap {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 28px 20px 40px;
+    }
+
+    .page-inner {
+      max-width: 1120px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .grid-create {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 760px) {
+      .grid-create { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="page-inner">
+
+    <div class="page-header">
+      <div>
+        <p class="label-caps">Create flow</p>
+        <h1 style="font-size: 36px; font-weight: 700; line-height: 40px; color: var(--theme-text); margin-bottom: 10px;">Create Community</h1>
+        <p style="font-size: 15px; font-weight: 400; color: var(--theme-text-muted); line-height: 24px; max-width: 620px;">
+          Set up a new community, choose how members join, and preview the generated invite code.
+        </p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <a class="btn-secondary" href="./community-logged-in.html" style="padding: 10px 16px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;">My communities</a>
+        <a class="btn-secondary" href="./leaderboard-logged-in.html" style="padding: 10px 16px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;">Leaderboard</a>
+      </div>
+    </div>
+
+    <div class="grid-create">
+      <div class="card" style="padding: 32px;">
+        <p class="label-caps">Setup</p>
+        <h2 style="font-size: 30px; font-weight: 700; color: var(--theme-text); line-height: 34px; margin-bottom: 10px;">Create Community</h2>
+        <p style="font-size: 15px; color: var(--theme-text-muted); line-height: 24px; margin-bottom: 28px; max-width: 560px;">
+          Define your community name and join settings before final creation.
+        </p>
+
+        <div style="margin-bottom: 24px;">
+          <label style="display: block; font-size: 13px; font-weight: 700; color: var(--theme-text-muted); margin-bottom: 8px;">Community name</label>
+          <input
+            id="community-name-input"
+            type="text"
+            class="text-input"
+            placeholder="e.g. Open Cup Johannesburg"
+            value="Open Cup Johannesburg"
+            oninput="updatePreview()"
+          />
+          <p style="font-size: 12px; color: var(--theme-text-muted); margin-top: 8px;">Give players a clear community name they will recognise when joining.</p>
+        </div>
+
+        <div class="inner-surface" style="padding: 18px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px;">
+            <div>
+              <p style="font-size: 14px; font-weight: 700; color: var(--theme-text); margin-bottom: 4px;">Draws allowed</p>
+              <p style="font-size: 12px; color: var(--theme-text-muted);">Allow ties when a match ends level.</p>
+            </div>
+            <input id="draws-checkbox" type="checkbox" class="themed-checkbox" checked onchange="updatePreview()">
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; border-top: 1px solid var(--theme-border); flex-wrap: wrap;">
+            <div>
+              <p style="font-size: 14px; font-weight: 700; color: var(--theme-text); margin-bottom: 4px;">Join mode</p>
+              <p style="font-size: 12px; color: var(--theme-text-muted);">Choose whether players join instantly or request approval.</p>
+            </div>
+            <button id="btn-toggle-mode" class="btn-toggle" onclick="toggleJoinMode()">Open join mode</button>
+          </div>
+        </div>
+
+        <div class="inner-surface" style="padding: 20px; margin-bottom: 24px;">
+          <div style="padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--theme-border);">
+            <p style="font-size: 11px; color: var(--brand-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 10px;">Community summary</p>
+            <div class="summary-row">
+              <span style="font-size: 14px; color: var(--theme-text-muted);">Name</span>
+              <span id="summary-name" style="font-size: 14px; font-weight: 700; color: var(--theme-text);">Open Cup Johannesburg</span>
+            </div>
+            <div class="summary-row">
+              <span style="font-size: 14px; color: var(--theme-text-muted);">Join mode</span>
+              <span id="summary-mode" style="font-size: 14px; font-weight: 700; color: var(--theme-text);">Open join mode</span>
+            </div>
+            <div class="summary-row">
+              <span style="font-size: 14px; color: var(--theme-text-muted);">Draws</span>
+              <span id="summary-draws" style="font-size: 14px; font-weight: 700; color: var(--theme-text);">Allowed</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <a class="btn-secondary" href="./community-logged-in.html">Cancel</a>
+          <a class="btn-primary" href="./leaderboard-empty.html">Create Community</a>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 28px;">
+        <p class="label-caps">Outcome</p>
+        <h3 style="font-size: 22px; font-weight: 700; color: var(--theme-text); line-height: 28px; margin-bottom: 12px;">Community preview</h3>
+        <p style="font-size: 14px; color: var(--theme-text-muted); line-height: 22px; margin-bottom: 20px;">
+          When creation is complete, the new community returns to My Communities with a shareable code.
+        </p>
+
+        <div style="padding: 20px; background: linear-gradient(135deg, rgba(240,90,26,0.08), rgba(255,255,255,0.03)); border: 1px solid var(--theme-border); border-radius: 22px; margin-bottom: 18px;">
+          <div id="preview-initials" style="width: 64px; height: 64px; margin-bottom: 14px; background: linear-gradient(135deg, #b83c08, var(--brand-primary)); border-radius: 18px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+            OC
+          </div>
+          <h4 id="preview-name" style="font-size: 18px; font-weight: 700; color: var(--theme-text); margin-bottom: 4px;">Open Cup Johannesburg</h4>
+          <p id="preview-mode" style="font-size: 13px; color: var(--theme-text-muted); margin-bottom: 14px;">Open join mode</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--theme-border); border-radius: 16px;">
+            <span style="font-size: 12px; color: var(--theme-text-muted);">Generated code</span>
+            <span id="preview-code" style="font-size: 13px; font-weight: 700; color: var(--theme-accent); letter-spacing: 0.08em;">OPENCX7</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let joinMode = 'open';
+
+  function toggleJoinMode() {
+    joinMode = joinMode === 'open' ? 'gated' : 'open';
+    const label = joinMode === 'open' ? 'Open join mode' : 'Approval required';
+    document.getElementById('btn-toggle-mode').textContent = label;
+    document.getElementById('summary-mode').textContent = label;
+    document.getElementById('preview-mode').textContent = label;
+  }
+
+  function getPreviewCode(name) {
+    return (name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 5).padEnd(5, 'X')) + '7';
+  }
+
+  function getInitials(name) {
+    return name.trim().split(' ').filter(Boolean).slice(0, 2).map(function (w) { return w[0].toUpperCase(); }).join('');
+  }
+
+  function updatePreview() {
+    const nameInput = document.getElementById('community-name-input');
+    const name = nameInput.value.trim() || 'Open Cup Johannesburg';
+    const drawsAllowed = document.getElementById('draws-checkbox').checked;
+    const code = getPreviewCode(name);
+    const initials = getInitials(name);
+    const modeLabel = joinMode === 'open' ? 'Open join mode' : 'Approval required';
+
+    document.getElementById('preview-initials').textContent = initials;
+    document.getElementById('preview-name').textContent = name;
+    document.getElementById('preview-mode').textContent = modeLabel;
+    document.getElementById('preview-code').textContent = code;
+    document.getElementById('summary-name').textContent = name;
+    document.getElementById('summary-mode').textContent = modeLabel;
+    document.getElementById('summary-draws').textContent = drawsAllowed ? 'Allowed' : 'Disabled';
+    document.getElementById('btn-toggle-mode').textContent = modeLabel;
+  }
+
+  updatePreview();
+</script>
+</body>
+</html>

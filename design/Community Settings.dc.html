@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 900px; margin: 0 auto;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #1f272e;">Community Settings</h1>
+      <p style="font-size: 14px; color: #5f6b74; margin-top: 4px;">Admins only • Configure rating engine and rulesets</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="flex: 1; padding: 40px 20px; overflow-y: auto;">
+    <div style="max-width: 900px; margin: 0 auto;">
+      
+      <!-- Section: Rating Engine -->
+      <div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 24px;">Rating Engine</h2>
+        
+        <div style="padding: 24px; background: white; border: 1px solid #e0e5f2; border-radius: 12px; display: flex; flex-direction: column; gap: 24px;">
+          
+          <!-- Rating Decay Toggle -->
+          <div style="padding-bottom: 24px; border-bottom: 1px solid #e0e5f2;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px;">
+              <div style="flex: 1;">
+                <h3 style="font-size: 14px; font-weight: 700; color: #1f272e; margin-bottom: 4px;">Rating Decay</h3>
+                <p style="font-size: 12px; color: #5f6b74;">Slightly lower player confidence after periods of inactivity</p>
+              </div>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  checked="{{ decayEnabled }}"
+                  onChange="{{ (e) => toggleDecay() }}"
+                  style="width: 20px; height: 20px; cursor: pointer; accent-color: #2f70ef;"
+                />
+              </label>
+            </div>
+
+            <sc-if value="{{ decayEnabled }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; padding: 16px; background: #f8fafb; border-radius: 8px;">
+                <div>
+                  <label style="display: block; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Decay Threshold</label>
+                  <select
+                    value="{{ decayThreshold }}"
+                    onChange="{{ (e) => updateRating('decayThreshold', e.target.value) }}"
+                    style="width: 100%; padding: 8px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: inherit; background: white; color: #1f272e; cursor: pointer;"
+                  >
+                    <option value="14">14 days</option>
+                    <option value="30">30 days</option>
+                    <option value="60">60 days</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Decay Rate</label>
+                  <select
+                    value="{{ decayRate }}"
+                    onChange="{{ (e) => updateRating('decayRate', e.target.value) }}"
+                    style="width: 100%; padding: 8px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: inherit; background: white; color: #1f272e; cursor: pointer;"
+                  >
+                    <option value="slow">Slow (0.5%/week)</option>
+                    <option value="normal">Normal (1%/week)</option>
+                    <option value="fast">Fast (2%/week)</option>
+                  </select>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- Leaderboard Sort Toggle -->
+          <div>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+              <div style="flex: 1;">
+                <h3 style="font-size: 14px; font-weight: 700; color: #1f272e; margin-bottom: 4px;">Draws Allowed</h3>
+                <p style="font-size: 12px; color: #5f6b74;">Matches can end in a tie or draw result</p>
+              </div>
+              <label style="display: flex; align-items: center; cursor: pointer;">
+                <input
+                  type="checkbox"
+                  checked="{{ drawsAllowed }}"
+                  onChange="{{ (e) => toggleDrawsAllowed() }}"
+                  style="width: 20px; height: 20px; cursor: pointer; accent-color: #2f70ef;"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px;">
+        <button
+          onClick="{{ () => resetSettings() }}"
+          style="padding: 12px 24px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+          style-hover="background: #f0f4ff;"
+        >
+          Reset to Defaults
+        </button>
+        <button
+          onClick="{{ () => saveSettings() }}"
+          style="padding: 12px 24px; background: #2f70ef; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s;"
+          style-hover="background: #1655d1;"
+        >
+          Save Changes
+        </button>
+      </div>
+
+      <!-- Save Confirmation -->
+      <sc-if value="{{ showSaveConfirmation }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top: 20px; padding: 12px 16px; background: #d1fae5; border: 1px solid #10b981; border-radius: 8px;">
+          <p style="font-size: 13px; color: #065f46; font-weight: 500;">✓ Settings saved successfully</p>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    rulesets: [
+      { id: '1v1', name: '1v1 Competitive', description: 'One-on-one matches', minTeamSize: 1, maxTeamSize: 1, anyoneCanReport: true },
+      { id: 'team', name: 'Team vs Team', description: 'Team-based matches', minTeamSize: 2, maxTeamSize: 5, anyoneCanReport: false },
+    ],
+    decayEnabled: true,
+    decayThreshold: '30',
+    decayRate: 'normal',
+    drawsAllowed: true,
+    showSaveConfirmation: false,
+  };
+
+  renderVals() {
+    return {
+      rulesets: this.state.rulesets.map(r => ({
+        ...r,
+        minTeamSize: r.minTeamSize.toString(),
+        maxTeamSize: r.maxTeamSize.toString(),
+        reportingPermissionText: r.anyoneCanReport 
+          ? 'Any community member can report matches'
+          : 'Only admins can report matches',
+      })),
+      decayEnabled: this.state.decayEnabled,
+      decayEnabledLabel: this.state.decayEnabled ? 'Enabled' : 'Disabled',
+      decayThreshold: this.state.decayThreshold,
+      decayRate: this.state.decayRate,
+      drawsAllowed: this.state.drawsAllowed,
+      drawsAllowedLabel: this.state.drawsAllowed ? 'Enabled' : 'Disabled',
+      showSaveConfirmation: this.state.showSaveConfirmation,
+      updateRuleset: (rulesetId, field, value) => {
+        this.setState(s => ({
+          rulesets: s.rulesets.map(r => 
+            r.id === rulesetId 
+              ? { ...r, [field]: field === 'anyoneCanReport' ? value : (isNaN(value) ? value : parseInt(value)) }
+              : r
+          ),
+          showSaveConfirmation: false,
+        }));
+      },
+      updateRating: (field, value) => {
+        this.setState({ [field]: value, showSaveConfirmation: false });
+      },
+      toggleDecay: () => {
+        this.setState({ decayEnabled: !this.state.decayEnabled, showSaveConfirmation: false });
+      },
+      toggleDrawsAllowed: () => {
+        this.setState({ drawsAllowed: !this.state.drawsAllowed, showSaveConfirmation: false });
+      },
+      saveSettings: () => {
+        console.log('Settings saved:', {
+          rulesets: this.state.rulesets,
+          decay: { enabled: this.state.decayEnabled, threshold: this.state.decayThreshold, rate: this.state.decayRate },
+          drawsAllowed: this.state.drawsAllowed,
+        });
+        this.setState({ showSaveConfirmation: true });
+        setTimeout(() => {
+          this.setState({ showSaveConfirmation: false });
+        }, 3000);
+      },
+      resetSettings: () => {
+        this.setState({
+          rulesets: [
+            { id: '1v1', name: '1v1 Competitive', description: 'One-on-one matches', minTeamSize: 1, maxTeamSize: 1, anyoneCanReport: true },
+            { id: 'team', name: 'Team vs Team', description: 'Team-based matches', minTeamSize: 2, maxTeamSize: 5, anyoneCanReport: false },
+          ],
+          decayEnabled: true,
+          decayThreshold: '30',
+          decayRate: 'normal',
+          drawsAllowed: true,
+          showSaveConfirmation: false,
+        });
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

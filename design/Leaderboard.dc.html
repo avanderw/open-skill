@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #1f272e; margin-bottom: 20px;">Leaderboard</h1>
+
+      <!-- Player Scores Cards -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+        <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; text-align: center;">
+          <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">1v1 Rating</p>
+          <p style="font-size: 28px; font-weight: 700; color: #1f272e;">{{ player1v1Rating }}</p>
+          <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">Rank #{{ player1v1Rank }}</p>
+        </div>
+        <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; text-align: center;">
+          <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Team Rating</p>
+          <p style="font-size: 28px; font-weight: 700; color: #1f272e;">{{ playerTeamRating }}</p>
+          <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">Rank #{{ playerTeamRank }}</p>
+        </div>
+        <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; text-align: center;">
+          <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">FFA Rating</p>
+          <p style="font-size: 28px; font-weight: 700; color: #1f272e;">{{ playerFFARating }}</p>
+          <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">Rank #{{ playerFFARank }}</p>
+        </div>
+      </div>
+
+      <!-- Early Community Banner -->
+      <sc-if value="{{ showEarlyBanner }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 12px 16px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; margin-bottom: 16px;">
+          <p style="font-size: 13px; color: #856404; font-weight: 500;">⚠️ Ratings are provisional and may change significantly as more matches are reported.</p>
+        </div>
+      </sc-if>
+
+      <!-- Ruleset Tabs -->
+      <div style="display: flex; gap: 12px;">
+        <sc-for list="{{ rulesets }}" as="ruleset" hint-placeholder-count="3">
+          <button
+            onClick="{{ () => switchRuleset(ruleset.id) }}"
+            style="padding: 12px 20px; background: {{ activeRuleset === ruleset.id ? 'white' : 'transparent' }}; border: 1px solid {{ activeRuleset === ruleset.id ? '#e0e5f2' : 'transparent' }}; border-bottom: none; border-radius: 8px 8px 0 0; color: {{ activeRuleset === ruleset.id ? '#2f70ef' : '#5f6b74' }}; font-size: 14px; font-weight: {{ activeRuleset === ruleset.id ? '700' : '500' }}; cursor: pointer; transition: all 0.2s;"
+            style-hover="color: #2f70ef;"
+          >
+            {{ ruleset.name }}
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 60px 20px;">
+      <div style="text-align: center; max-width: 400px;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: #e0e5f2; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #5f6b74; font-size: 36px; font-weight: 700;">
+          📊
+        </div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 8px;">No Matches Yet</h2>
+        <p style="font-size: 14px; color: #5f6b74; margin-bottom: 24px;">Ratings will appear once the first match is reported. Get started by reporting a match.</p>
+        <a href="/report-match" style="display: inline-block; padding: 12px 24px; background: #2f70ef; color: white; border-radius: 100px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
+           style-hover="background: #1655d1;"
+        >
+          Report Match
+        </a>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Leaderboard Table -->
+  <sc-if value="{{ !isEmpty }}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; padding: 20px; overflow-x: auto;">
+      <div style="max-width: 1200px; margin: 0 auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 51, 160, 0.08);">
+          <thead>
+            <tr style="background: #f8fafb; border-bottom: 1px solid #e0e5f2;">
+              <th style="padding: 16px; text-align: left; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Rank</th>
+              <th style="padding: 16px; text-align: left; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Player</th>
+              <th style="padding: 16px; text-align: center; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Rating</th>
+              <th style="padding: 16px; text-align: center; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Trend</th>
+              <th style="padding: 16px; text-align: center; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">Matches</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ leaderboardData }}" as="player" hint-placeholder-count="5">
+              <tr style="border-bottom: 1px solid #e0e5f2; transition: background 0.2s;"
+                  style-hover="background: #f8fafb;">
+                <td style="padding: 16px; font-size: 16px; font-weight: 700; color: #2f70ef; width: 60px;">
+                  {{ player.rank }}
+                </td>
+                <td style="padding: 16px;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2f70ef, #1655d1); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; flex-shrink: 0;">
+                      {{ player.initials }}
+                    </div>
+                    <div>
+                      <p style="font-size: 14px; font-weight: 600; color: #1f272e;">{{ player.name }}</p>
+                      <sc-if value="{{ player.isProvisionalState }}" hint-placeholder-val="{{ false }}">
+                        <span style="display: inline-block; font-size: 11px; padding: 2px 6px; background: #fff3cd; color: #856404; border-radius: 4px; font-weight: 600;">Provisional</span>
+                      </sc-if>
+                    </div>
+                  </div>
+                </td>
+                <td style="padding: 16px; text-align: center;">
+                  <p style="font-size: 16px; font-weight: 700; color: #1f272e;">{{ player.rating }}</p>
+                </td>
+                <td style="padding: 16px; text-align: center;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span style="font-size: 18px;">{{ player.trendIcon }}</span>
+                    <span style="font-size: 13px; font-weight: 600; color: {{ player.trendColor }};">{{ player.trendChange }}</span>
+                  </div>
+                </td>
+                <td style="padding: 16px; text-align: center;">
+                  <p style="font-size: 14px; font-weight: 600; color: #5f6b74;">{{ player.matchCount }}</p>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    activeRuleset: '1v1',
+  };
+
+  renderVals() {
+    const rulesets = [
+      { id: '1v1', name: '1v1' },
+      { id: 'team', name: 'Team' },
+      { id: 'ffa', name: 'FFA' },
+    ];
+
+    const playersBy1v1 = [
+      { rank: 1, name: 'shadowPlay', initials: 'SP', rating: 1842, isProvisional: false, trendIcon: '📈', trendChange: '+45', trendColor: '#10b981', matchCount: 24 },
+      { rank: 2, name: 'ProGamer92', initials: 'PG', rating: 1785, isProvisional: false, trendIcon: '📉', trendChange: '-12', trendColor: '#ef4444', matchCount: 31 },
+      { rank: 3, name: 'LunarEcho', initials: 'LE', rating: 1742, isProvisional: true, trendIcon: '📈', trendChange: '+23', trendColor: '#10b981', matchCount: 8 },
+      { rank: 4, name: 'PixelMaster', initials: 'PM', rating: 1698, isProvisional: false, trendIcon: '➡️', trendChange: '+2', trendColor: '#6b7280', matchCount: 19 },
+      { rank: 5, name: 'VortexKing', initials: 'VK', rating: 1645, isProvisional: true, trendIcon: '📈', trendChange: '+67', trendColor: '#10b981', matchCount: 5 },
+    ];
+
+    const playersById = {
+      '1v1': playersBy1v1,
+      'team': [
+        { rank: 1, name: 'Alpha Squad', initials: 'AS', rating: 1920, isProvisional: false, trendIcon: '📈', trendChange: '+52', trendColor: '#10b981', matchCount: 18 },
+        { rank: 2, name: 'Phantom Force', initials: 'PF', rating: 1865, isProvisional: false, trendIcon: '➡️', trendChange: '+5', trendColor: '#6b7280', matchCount: 22 },
+        { rank: 3, name: 'Nexus Collective', initials: 'NC', rating: 1801, isProvisional: false, trendIcon: '📉', trendChange: '-18', trendColor: '#ef4444', matchCount: 26 },
+      ],
+      'ffa': [
+        { rank: 1, name: 'EchoKnight', initials: 'EK', rating: 1756, isProvisional: false, trendIcon: '📈', trendChange: '+34', trendColor: '#10b981', matchCount: 29 },
+        { rank: 2, name: 'Cipher7', initials: 'C7', rating: 1712, isProvisional: true, trendIcon: '📈', trendChange: '+78', trendColor: '#10b981', matchCount: 11 },
+        { rank: 3, name: 'VortexKing', initials: 'VK', rating: 1658, isProvisional: false, trendIcon: '➡️', trendChange: '+1', trendColor: '#6b7280', matchCount: 35 },
+      ],
+    };
+
+    const currentPlayers = playersById[this.state.activeRuleset] || [];
+    const hasData = currentPlayers.length > 0;
+    const isEarlyStage = currentPlayers.some(p => p.isProvisional);
+
+    const players = currentPlayers.map(p => ({
+      rank: p.rank.toString(),
+      name: p.name,
+      initials: p.initials,
+      rating: p.rating.toString(),
+      isProvisional: p.isProvisional,
+      trendIcon: p.trendIcon,
+      trendChange: p.trendChange,
+      trendColor: p.trendColor,
+      matchCount: p.matchCount.toString(),
+      isProvisionalState: p.isProvisional,
+    }));
+
+    return {
+      isEmpty: !hasData,
+      leaderboardData: players,
+      rulesets: rulesets,
+      activeRuleset: this.state.activeRuleset,
+      showEarlyBanner: isEarlyStage,
+      player1v1Rating: '1842',
+      player1v1Rank: '3',
+      playerTeamRating: '1920',
+      playerTeamRank: '2',
+      playerFFARating: '1756',
+      playerFFARank: '1',
+      switchRuleset: (rulesetId) => {
+        this.setState({ activeRuleset: rulesetId });
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

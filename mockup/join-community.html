@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Join Community — Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(240, 90, 26, 0.18), transparent 32%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+    button { font: inherit; cursor: pointer; }
+
+    /* ── Utility ───────────────────────────────────────────── */
+    .label-caps {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+      margin-bottom: 6px;
+    }
+
+    /* ── Card ──────────────────────────────────────────────── */
+    .card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 28px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+    }
+
+    /* ── Stat block ────────────────────────────────────────── */
+    .stat-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--theme-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .stat-cell {
+      padding: 16px 18px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--theme-text);
+      line-height: 1;
+    }
+    .stat-value-sm {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--theme-accent);
+      line-height: 1;
+    }
+
+    /* ── Divider ───────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--theme-border);
+      margin: 24px 0;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────── */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 15px 24px;
+      background: var(--theme-accent);
+      color: var(--brand-white);
+      border: none;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background 0.2s ease;
+      text-decoration: none;
+    }
+    .btn-primary:hover { background: var(--theme-accent-hover); color: var(--brand-white); }
+
+    .btn-discord {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: #5865F2;
+      color: white;
+      border: none;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background 0.2s ease;
+    }
+    .btn-discord:hover { background: #4752C4; }
+
+    .btn-outline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px 24px;
+      background: transparent;
+      color: var(--theme-accent);
+      border: 1px solid var(--theme-accent);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background 0.2s ease;
+    }
+    .btn-outline:hover { background: rgba(240, 90, 26, 0.1); }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: transparent;
+      color: var(--theme-text);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+
+    /* ── State icon ────────────────────────────────────────── */
+    .state-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    /* ── Community avatar ──────────────────────────────────── */
+    .community-avatar {
+      width: 56px;
+      height: 56px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(240, 90, 26, 0.35);
+    }
+
+    /* ── Page layout ───────────────────────────────────────── */
+    .page-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px 48px;
+    }
+
+    .join-card-wrap {
+      max-width: 480px;
+      width: 100%;
+    }
+
+    /* ── State switcher (demo tool) ────────────────────────── */
+    .demo-bar {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .demo-bar p {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+      margin-right: 4px;
+    }
+    .demo-btn {
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--theme-text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .demo-btn:hover, .demo-btn.active {
+      border-color: var(--theme-accent);
+      color: var(--theme-accent);
+      background: rgba(240, 90, 26, 0.1);
+    }
+
+    /* ── Alerts ────────────────────────────────────────────── */
+    .alert-info {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(240, 90, 26, 0.12);
+      border: 1px solid rgba(240, 90, 26, 0.3);
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="join-card-wrap">
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+      <a class="btn-ghost" href="./create-join-community.html">&larr; Back to communities</a>
+      <a class="btn-ghost" href="./leaderboard-logged-out.html">Public leaderboard</a>
+    </div>
+
+    <!-- ── Demo state switcher ─────────────────────────────── -->
+    <div class="demo-bar">
+      <p>State</p>
+      <button class="demo-btn active" id="btn-state-valid" onclick="setState('valid')">Valid link</button>
+      <button class="demo-btn" id="btn-state-invalid" onclick="setState('invalid')">Expired</button>
+      <button class="demo-btn" id="btn-state-member" onclick="setState('alreadyMember')">Already member</button>
+      <button class="demo-btn" id="btn-state-pending" onclick="setState('pendingRequest')">Pending</button>
+    </div>
+
+    <!-- ── State: Invalid / Expired link ──────────────────── -->
+    <div id="view-invalid" style="display: none;">
+      <div class="card" style="padding: 40px 32px; text-align: center;">
+        <div class="state-icon" style="background: rgba(180, 35, 24, 0.16); border: 1px solid rgba(180, 35, 24, 0.35);">
+          ✕
+        </div>
+        <h1 style="font-size: 24px; font-weight: 700; color: var(--theme-text); margin-bottom: 8px;">Link Expired or Invalid</h1>
+        <p style="font-size: 14px; color: rgba(255,255,255,0.55); line-height: 22px; margin-bottom: 28px;">
+          This invite link may have expired or is no longer valid. Ask the community owner for a new link.
+        </p>
+        <a href="./create-join-community.html" class="btn-primary" style="max-width: 220px; margin: 0 auto;">
+          Return to Communities
+        </a>
+      </div>
+    </div>
+
+    <!-- ── State: Already a member ────────────────────────── -->
+    <div id="view-member" style="display: none;">
+      <div class="card" style="padding: 40px 32px; text-align: center;">
+        <div class="state-icon" style="background: rgba(6, 118, 71, 0.16); border: 1px solid rgba(6, 118, 71, 0.35);">
+          ✓
+        </div>
+        <h1 style="font-size: 24px; font-weight: 700; color: var(--theme-text); margin-bottom: 8px;">You're Already a Member</h1>
+        <p style="font-size: 14px; color: rgba(255,255,255,0.55); line-height: 22px; margin-bottom: 28px;">
+          Redirecting to <strong style="color: var(--theme-text);">Apex Legends Competitive</strong> dashboard…
+        </p>
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(255,255,255,0.06); border: 1px solid var(--theme-border); border-radius: 100px; font-size: 14px; font-weight: 700; color: var(--brand-muted);">
+          <span style="animation: spin 1s linear infinite; display: inline-block;">⟳</span> Loading
+        </div>
+      </div>
+    </div>
+
+    <!-- ── State: Pending request ──────────────────────────── -->
+    <div id="view-pending" style="display: none;">
+      <div class="card" style="padding: 40px 32px; text-align: center;">
+        <div class="state-icon" style="background: rgba(240, 90, 26, 0.14); border: 1px solid rgba(240, 90, 26, 0.3);">
+          ⏳
+        </div>
+        <h1 style="font-size: 24px; font-weight: 700; color: var(--theme-text); margin-bottom: 8px;">Request Sent</h1>
+        <p style="font-size: 14px; color: rgba(255,255,255,0.55); line-height: 22px; margin-bottom: 28px;">
+          Your request to join <strong style="color: var(--theme-text);">Apex Legends Competitive</strong> is pending approval. The community owner will review it shortly.
+        </p>
+        <a href="./create-join-community.html" class="btn-primary" style="max-width: 220px; margin: 0 auto;">
+          Back to Communities
+        </a>
+      </div>
+    </div>
+
+    <!-- ── State: Valid link ───────────────────────────────── -->
+    <div id="view-valid">
+      <div class="card" style="padding: 32px;">
+
+        <!-- Community header -->
+        <div style="margin-bottom: 24px;">
+          <div class="community-avatar">AL</div>
+          <h1 style="font-size: 26px; font-weight: 700; color: var(--theme-text); line-height: 32px; margin-bottom: 4px;">
+            Apex Legends Competitive
+          </h1>
+          <p style="font-size: 13px; color: var(--brand-muted);">A friendly space to connect, compete, and grow together.</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-block">
+          <div class="stat-cell">
+            <p class="stat-label">Members</p>
+            <p class="stat-value">24</p>
+          </div>
+          <div class="stat-cell">
+            <p class="stat-label">Join Mode</p>
+            <p class="stat-value-sm" style="margin-top: 4px;">Gated</p>
+          </div>
+        </div>
+
+        <!-- Not logged in -->
+        <div id="auth-guest">
+          <p style="font-size: 12px; color: var(--brand-muted); text-align: center; margin-bottom: 14px;">
+            Choose how you'd like to continue
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+            <button class="btn-discord" onclick="setLoggedIn('Discord')">
+              Continue with Discord
+            </button>
+            <button class="btn-outline" onclick="setLoggedIn('Gmail')">
+              Continue with Gmail
+            </button>
+            <button class="btn-outline" onclick="setLoggedIn('Email')">
+              Continue with Email
+            </button>
+            <a class="btn-outline" href="./leaderboard-logged-out.html">
+              Continue without logging in
+            </a>
+          </div>
+        </div>
+
+        <!-- Logged in -->
+        <div id="auth-user" style="display: none;">
+          <div class="alert-info" style="margin-bottom: 14px;">
+            Continuing with <strong id="auth-method-label">Discord</strong>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="./create-join-community.html" class="btn-primary">
+              Request to Join
+            </a>
+            <button class="btn-ghost" style="align-self: center; margin-top: 2px;" onclick="setGuest()">
+              Switch account
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <p style="text-align: center; font-size: 12px; color: rgba(255,255,255,0.18); margin-top: 28px;">
+      Open-Skill • Competitive Ranking Platform
+    </p>
+
+  </div>
+</div>
+
+<script>
+  const views = { valid: 'view-valid', invalid: 'view-invalid', alreadyMember: 'view-member', pendingRequest: 'view-pending' };
+  const demoBtns = { valid: 'btn-state-valid', invalid: 'btn-state-invalid', alreadyMember: 'btn-state-member', pendingRequest: 'btn-state-pending' };
+
+  function setState(state) {
+    Object.values(views).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    Object.values(demoBtns).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+
+    const view = document.getElementById(views[state]);
+    if (view) view.style.display = 'block';
+    const btn = document.getElementById(demoBtns[state]);
+    if (btn) btn.classList.add('active');
+  }
+
+  function setLoggedIn(method) {
+    const methodLabel = document.getElementById('auth-method-label');
+    if (methodLabel) {
+      methodLabel.textContent = method === 'Guest' ? 'Guest mode' : method;
+    }
+    document.getElementById('auth-guest').style.display = 'none';
+    document.getElementById('auth-user').style.display = 'block';
+  }
+
+  function setGuest() {
+    document.getElementById('auth-user').style.display = 'none';
+    document.getElementById('auth-guest').style.display = 'block';
+  }
+</script>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+</body>
+</html>

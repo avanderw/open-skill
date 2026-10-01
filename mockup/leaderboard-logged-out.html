@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard (Logged Out) — Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 26, 0.14), transparent 28%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+
+    .page-wrap { min-height: 100vh; padding: 28px 20px 40px; }
+    .page-inner { max-width: 1120px; margin: 0 auto; }
+
+    .header-card,
+    .section-card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .header-card { padding: 26px 28px; margin-bottom: 20px; }
+    .section-card { padding: 24px; margin-bottom: 16px; }
+
+    .label-caps {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+      margin-bottom: 8px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: rgba(255, 255, 255, 0.04); }
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--brand-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--theme-border);
+      font-size: 14px;
+      color: var(--theme-text);
+    }
+
+    .rank { font-weight: 800; color: var(--theme-accent); width: 56px; }
+    .player {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 180px;
+    }
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+    }
+    .player-meta { display: flex; flex-direction: column; gap: 2px; }
+    .player-name { font-weight: 700; color: var(--theme-text); font-size: 14px; }
+    .player-note { font-size: 11px; color: var(--brand-muted); }
+
+    .rating { text-align: center; font-weight: 700; width: 96px; }
+    .trend { text-align: center; width: 100px; font-weight: 700; }
+    .matches { text-align: center; width: 90px; color: var(--theme-text-muted); font-weight: 700; }
+
+    .trend-up { color: #6ee7b7; }
+    .trend-down { color: #f88; }
+    .trend-flat { color: var(--brand-muted); }
+
+    .section-footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--theme-border);
+      text-align: right;
+    }
+
+    .full-link {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--theme-accent);
+    }
+
+    @media (max-width: 760px) {
+      .header-card, .section-card { padding: 18px; }
+      th:nth-child(4), td:nth-child(4) { display: none; }
+    }
+
+    /* Add this for the button */
+    .btn-signin {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 24px;
+      background-color: var(--theme-accent);
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background-color 0.2s ease;
+    }
+    .btn-signin:hover {
+      background-color: var(--theme-accent-hover);
+      color: white;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--theme-text);
+      border: 1px solid var(--theme-border);
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--theme-text);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-inner">
+      <div class="header-card" style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+        <div>
+          <p class="label-caps">Community rankings</p>
+          <h1 style="font-size: 34px; font-weight: 700; line-height: 1.1; color: var(--theme-text); margin-bottom: 8px;">Leaderboard</h1>
+          <p style="font-size: 15px; color: var(--theme-text-muted); line-height: 24px; max-width: 760px;">
+            You are browsing as a guest. Explore the top players across each ruleset below.
+          </p>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <a href="./community-logged-in.html" class="btn-ghost">My Communities</a>
+          <a href="./login.html" class="btn-signin">Sign In</a>
+        </div>
+      </div>
+
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">1v1</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">Top 10 Players</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="rank">1</td><td><div class="player"><span class="avatar">SP</span><div class="player-meta"><span class="player-name">shadowPlay</span></div></div></td><td class="rating">1842</td><td class="trend trend-up">+45</td><td class="matches">24</td></tr>
+              <tr><td class="rank">2</td><td><div class="player"><span class="avatar">PG</span><div class="player-meta"><span class="player-name">ProGamer92</span></div></div></td><td class="rating">1785</td><td class="trend trend-down">-12</td><td class="matches">31</td></tr>
+              <tr><td class="rank">3</td><td><div class="player"><span class="avatar">LE</span><div class="player-meta"><span class="player-name">LunarEcho</span><span class="player-note">New this season</span></div></div></td><td class="rating">1742</td><td class="trend trend-up">+23</td><td class="matches">8</td></tr>
+              <tr><td class="rank">4</td><td><div class="player"><span class="avatar">PM</span><div class="player-meta"><span class="player-name">PixelMaster</span></div></div></td><td class="rating">1698</td><td class="trend trend-flat">+2</td><td class="matches">19</td></tr>
+              <tr><td class="rank">5</td><td><div class="player"><span class="avatar">VK</span><div class="player-meta"><span class="player-name">VortexKing</span></div></div></td><td class="rating">1645</td><td class="trend trend-up">+67</td><td class="matches">5</td></tr>
+              <tr><td class="rank">6</td><td><div class="player"><span class="avatar">NR</span><div class="player-meta"><span class="player-name">NovaRift</span></div></div></td><td class="rating">1621</td><td class="trend trend-up">+8</td><td class="matches">17</td></tr>
+              <tr><td class="rank">7</td><td><div class="player"><span class="avatar">TR</span><div class="player-meta"><span class="player-name">TempestRook</span></div></div></td><td class="rating">1598</td><td class="trend trend-down">-6</td><td class="matches">22</td></tr>
+              <tr><td class="rank">8</td><td><div class="player"><span class="avatar">BL</span><div class="player-meta"><span class="player-name">BlazeLock</span></div></div></td><td class="rating">1579</td><td class="trend trend-up">+11</td><td class="matches">14</td></tr>
+              <tr><td class="rank">9</td><td><div class="player"><span class="avatar">DK</span><div class="player-meta"><span class="player-name">DriftKnight</span><span class="player-note">New this season</span></div></div></td><td class="rating">1552</td><td class="trend trend-flat">0</td><td class="matches">12</td></tr>
+              <tr><td class="rank">10</td><td><div class="player"><span class="avatar">QE</span><div class="player-meta"><span class="player-name">QuantaEdge</span></div></div></td><td class="rating">1528</td><td class="trend trend-up">+4</td><td class="matches">16</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-footer"><a class="full-link" href="./leaderboard-full.html?mode=1v1">See full 1v1 leaderboard →</a></div>
+      </section>
+
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">Team</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">Top 10 Teams</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="rank">1</td><td><div class="player"><span class="avatar">AS</span><div class="player-meta"><span class="player-name">Alpha Squad</span></div></div></td><td class="rating">1920</td><td class="trend trend-up">+52</td><td class="matches">18</td></tr>
+              <tr><td class="rank">2</td><td><div class="player"><span class="avatar">PF</span><div class="player-meta"><span class="player-name">Phantom Force</span></div></div></td><td class="rating">1865</td><td class="trend trend-flat">+5</td><td class="matches">22</td></tr>
+              <tr><td class="rank">3</td><td><div class="player"><span class="avatar">NC</span><div class="player-meta"><span class="player-name">Nexus Collective</span></div></div></td><td class="rating">1801</td><td class="trend trend-down">-18</td><td class="matches">26</td></tr>
+              <tr><td class="rank">4</td><td><div class="player"><span class="avatar">OS</span><div class="player-meta"><span class="player-name">Omega Strike</span></div></div></td><td class="rating">1770</td><td class="trend trend-up">+14</td><td class="matches">19</td></tr>
+              <tr><td class="rank">5</td><td><div class="player"><span class="avatar">RB</span><div class="player-meta"><span class="player-name">Rogue Battalion</span></div></div></td><td class="rating">1749</td><td class="trend trend-down">-3</td><td class="matches">21</td></tr>
+              <tr><td class="rank">6</td><td><div class="player"><span class="avatar">VV</span><div class="player-meta"><span class="player-name">Vanta Vipers</span></div></div></td><td class="rating">1728</td><td class="trend trend-up">+9</td><td class="matches">15</td></tr>
+              <tr><td class="rank">7</td><td><div class="player"><span class="avatar">SW</span><div class="player-meta"><span class="player-name">Solar Wolves</span><span class="player-note">Rookie roster</span></div></div></td><td class="rating">1702</td><td class="trend trend-up">+27</td><td class="matches">10</td></tr>
+              <tr><td class="rank">8</td><td><div class="player"><span class="avatar">AG</span><div class="player-meta"><span class="player-name">Aether Grid</span></div></div></td><td class="rating">1684</td><td class="trend trend-flat">+1</td><td class="matches">14</td></tr>
+              <tr><td class="rank">9</td><td><div class="player"><span class="avatar">HC</span><div class="player-meta"><span class="player-name">Hex Crew</span></div></div></td><td class="rating">1668</td><td class="trend trend-down">-7</td><td class="matches">20</td></tr>
+              <tr><td class="rank">10</td><td><div class="player"><span class="avatar">TZ</span><div class="player-meta"><span class="player-name">Titan Zero</span></div></div></td><td class="rating">1651</td><td class="trend trend-up">+6</td><td class="matches">13</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-footer"><a class="full-link" href="./leaderboard-full.html?mode=team">See full team leaderboard →</a></div>
+      </section>
+
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">FFA</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">Top 10 Players</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="rank">1</td><td><div class="player"><span class="avatar">EK</span><div class="player-meta"><span class="player-name">EchoKnight</span></div></div></td><td class="rating">1756</td><td class="trend trend-up">+34</td><td class="matches">29</td></tr>
+              <tr><td class="rank">2</td><td><div class="player"><span class="avatar">C7</span><div class="player-meta"><span class="player-name">Cipher7</span><span class="player-note">Rapid climb</span></div></div></td><td class="rating">1712</td><td class="trend trend-up">+78</td><td class="matches">11</td></tr>
+              <tr><td class="rank">3</td><td><div class="player"><span class="avatar">VK</span><div class="player-meta"><span class="player-name">VortexKing</span></div></div></td><td class="rating">1658</td><td class="trend trend-flat">+1</td><td class="matches">35</td></tr>
+              <tr><td class="rank">4</td><td><div class="player"><span class="avatar">SL</span><div class="player-meta"><span class="player-name">StarLancer</span></div></div></td><td class="rating">1637</td><td class="trend trend-up">+12</td><td class="matches">20</td></tr>
+              <tr><td class="rank">5</td><td><div class="player"><span class="avatar">NV</span><div class="player-meta"><span class="player-name">NightVolt</span></div></div></td><td class="rating">1619</td><td class="trend trend-down">-9</td><td class="matches">27</td></tr>
+              <tr><td class="rank">6</td><td><div class="player"><span class="avatar">OR</span><div class="player-meta"><span class="player-name">OrbitRogue</span></div></div></td><td class="rating">1601</td><td class="trend trend-flat">0</td><td class="matches">16</td></tr>
+              <tr><td class="rank">7</td><td><div class="player"><span class="avatar">FX</span><div class="player-meta"><span class="player-name">FluxNova</span></div></div></td><td class="rating">1586</td><td class="trend trend-up">+7</td><td class="matches">14</td></tr>
+              <tr><td class="rank">8</td><td><div class="player"><span class="avatar">KR</span><div class="player-meta"><span class="player-name">Kairo</span><span class="player-note">Wildcard</span></div></div></td><td class="rating">1568</td><td class="trend trend-up">+19</td><td class="matches">9</td></tr>
+              <tr><td class="rank">9</td><td><div class="player"><span class="avatar">DM</span><div class="player-meta"><span class="player-name">DriftMantis</span></div></div></td><td class="rating">1554</td><td class="trend trend-down">-4</td><td class="matches">18</td></tr>
+              <tr><td class="rank">10</td><td><div class="player"><span class="avatar">QA</span><div class="player-meta"><span class="player-name">QuakeArrow</span></div></div></td><td class="rating">1539</td><td class="trend trend-up">+5</td><td class="matches">13</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-footer"><a class="full-link" href="./leaderboard-full.html?mode=ffa">See full FFA leaderboard →</a></div>
+      </section>
+    </div>
+  </div>
+<style>
+  .fab {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--theme-accent);
+    color: white;
+    border: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    text-decoration: none;
+  }
+  .fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    background: var(--theme-accent-hover);
+    color: white;
+  }
+  .fab:active { transform: scale(0.95); }
+  .fab svg { width: 28px; height: 28px; pointer-events: none; }
+  @media (max-width: 760px) {
+    .fab { bottom: 24px; right: 24px; width: 52px; height: 52px; }
+  }
+</style>
+<a class="fab" href="./team-mockup.html" aria-label="Team Builder">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+</a>
+</body>
+</html>

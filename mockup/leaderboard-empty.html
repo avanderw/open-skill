@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard (Empty) — Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 26, 0.14), transparent 28%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+
+    .page-wrap { min-height: 100vh; padding: 28px 20px 40px; }
+    .page-inner { max-width: 1120px; margin: 0 auto; }
+
+    .header-card,
+    .section-card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .header-card { padding: 26px 28px; margin-bottom: 20px; }
+    .section-card { padding: 24px; margin-bottom: 16px; }
+
+    .label-caps {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+      margin-bottom: 8px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .header-identity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px var(--theme-accent), 0 0 14px rgba(240,90,26,0.35);
+    }
+
+    .header-identity-meta { display: flex; flex-direction: column; gap: 2px; }
+
+    .header-identity-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--theme-text);
+      line-height: 1;
+    }
+
+    .header-identity-label {
+      font-size: 11px;
+      color: var(--brand-muted);
+      font-weight: 600;
+    }
+
+    .your-ranks {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 16px;
+      border-top: 1px solid var(--theme-border);
+    }
+
+    .your-ranks-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+      align-self: center;
+      margin-right: 4px;
+    }
+
+    .rank-badge {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--theme-border);
+      border-radius: 10px;
+      padding: 8px 14px;
+    }
+
+    .rank-badge-mode {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+    }
+
+    .rank-badge-pos {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--theme-accent);
+      line-height: 1;
+    }
+
+    .rank-badge-suffix {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand-muted);
+      margin-bottom: 1px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .empty-shell {
+      border: 1px dashed rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      padding: 28px 20px 24px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%),
+        radial-gradient(circle at 86% 14%, rgba(240,90,26,0.14), transparent 34%);
+      text-align: center;
+    }
+
+    .empty-emblem {
+      width: 74px;
+      height: 74px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(240, 90, 26, 0.35);
+      background: rgba(240, 90, 26, 0.08);
+      color: var(--theme-accent);
+      box-shadow: 0 0 0 7px rgba(240, 90, 26, 0.05);
+    }
+
+    .empty-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 8px;
+      color: var(--theme-text);
+    }
+
+    .empty-copy {
+      max-width: 680px;
+      margin: 0 auto;
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--theme-text-muted);
+    }
+
+    .cta-row {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-primary,
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s ease, background-color 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--theme-accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--theme-accent-hover);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      border: 1px solid var(--theme-border);
+      color: var(--theme-text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .btn-ghost:hover {
+      color: var(--theme-text);
+      background: rgba(255, 255, 255, 0.07);
+      transform: translateY(-1px);
+    }
+
+    .modes-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mode-card {
+      border: 1px solid var(--theme-border);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      text-align: left;
+    }
+
+    .mode-name {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+      margin-bottom: 8px;
+    }
+
+    .mode-rank {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--theme-accent);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .mode-note {
+      font-size: 12px;
+      color: var(--theme-text-muted);
+    }
+
+    .hint-strip {
+      margin-top: 16px;
+      border-top: 1px solid var(--theme-border);
+      padding-top: 12px;
+      text-align: right;
+    }
+
+    .hint-strip a {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--theme-accent);
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--theme-accent);
+      color: white;
+      border: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .fab:hover {
+      transform: scale(1.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      background: var(--theme-accent-hover);
+    }
+
+    .fab:active {
+      transform: scale(0.95);
+    }
+
+    .fab svg {
+      width: 28px;
+      height: 28px;
+      pointer-events: none;
+    }
+
+    @media (max-width: 900px) {
+      .modes-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .header-card, .section-card { padding: 18px; }
+      .empty-title { font-size: 24px; }
+      .modes-grid {
+        grid-template-columns: 1fr;
+      }
+      .fab {
+        bottom: 24px;
+        right: 24px;
+        width: 52px;
+        height: 52px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-inner">
+
+      <div class="header-card">
+        <div class="header-top">
+          <div>
+            <p class="label-caps">Community rankings</p>
+            <h1 style="font-size: 34px; font-weight: 700; line-height: 1.1; color: var(--theme-text); margin-bottom: 8px;">Leaderboard</h1>
+            <p style="font-size: 15px; color: var(--theme-text-muted); line-height: 24px; max-width: 640px;">
+              Your account is ready, but you are not ranked yet. Play your first rated match to appear on the leaderboard.
+            </p>
+          </div>
+          <div class="header-identity">
+            <span class="header-avatar">IC</span>
+            <div class="header-identity-meta">
+              <span class="header-identity-name">IronCrest</span>
+              <span class="header-identity-label">Signed in</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="your-ranks">
+          <span class="your-ranks-label">Your ranks</span>
+          <div class="rank-badge">
+            <span class="rank-badge-mode">1v1</span>
+            <span class="rank-badge-pos">--</span>
+            <span class="rank-badge-suffix">Unranked</span>
+          </div>
+          <div class="rank-badge">
+            <span class="rank-badge-mode">Team</span>
+            <span class="rank-badge-pos">--</span>
+            <span class="rank-badge-suffix">Unranked</span>
+          </div>
+          <div class="rank-badge">
+            <span class="rank-badge-mode">FFA</span>
+            <span class="rank-badge-pos">--</span>
+            <span class="rank-badge-suffix">Unranked</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">No standings yet</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">This leaderboard is still empty for you</h2>
+          </div>
+        </div>
+
+        <div class="empty-shell">
+          <div class="empty-emblem" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 21h8"></path>
+              <path d="M12 17v4"></path>
+              <path d="M7 4h10"></path>
+              <path d="M17 4v3a5 5 0 0 1-10 0V4"></path>
+              <path d="M5 9h2"></path>
+              <path d="M17 9h2"></path>
+            </svg>
+          </div>
+          <h3 class="empty-title">No ranked matches recorded yet</h3>
+          <p class="empty-copy">
+            Rankings appear after your first completed rated match. Once you start playing, your position and trend will show up here across 1v1, Team, and FFA.
+          </p>
+
+          <div class="cta-row">
+            <a class="btn-primary" href="./report-match.html">Report your first match</a>
+            <a class="btn-ghost" href="./create-join-community.html">Join or create a community</a>
+          </div>
+
+          <div class="modes-grid">
+            <article class="mode-card">
+              <p class="mode-name">1v1</p>
+              <p class="mode-rank">Unranked</p>
+              <p class="mode-note">Play 1 rated match to get your first placement.</p>
+            </article>
+            <article class="mode-card">
+              <p class="mode-name">Team</p>
+              <p class="mode-rank">Unranked</p>
+              <p class="mode-note">Queue with your squad to unlock team standings.</p>
+            </article>
+            <article class="mode-card">
+              <p class="mode-name">FFA</p>
+              <p class="mode-rank">Unranked</p>
+              <p class="mode-note">Jump into a free-for-all to appear in FFA ranks.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="hint-strip">
+          <a href="./leaderboard-logged-out.html">View public top players →</a>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <button class="fab" aria-label="Log a match" onclick="window.location.href='./report-match.html'">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+</body>
+</html>

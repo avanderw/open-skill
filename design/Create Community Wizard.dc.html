@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; border-bottom: 1px solid #e0e5f2; background: white;">
+    <div style="max-width: 600px; margin: 0 auto;">
+      <h1 style="font-size: 24px; font-weight: 700; color: #1f272e; margin-bottom: 8px;">Create Community</h1>
+      <p style="font-size: 14px; color: #5f6b74;">Get your community live in under a minute</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="flex: 1; padding: 32px 20px; overflow-y: auto;">
+    <div style="max-width: 600px; margin: 0 auto;">
+      <!-- Step 1: Basic Info -->
+      <sc-if value="{{ stepOneVisible }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 24px;">Community Name</h2>
+
+          <!-- Community Name -->
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 14px; font-weight: 600; color: #1f272e; margin-bottom: 8px;">Community Name</label>
+            <input
+              type="text"
+              value="{{ communityName }}"
+              onInput="{{ (e) => updateField('communityName', e.target.value) }}"
+              placeholder="e.g., Apex Legends Competitive"
+              style="width: 100%; padding: 12px 16px; border: 1px solid #d0d7e0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: border-color 0.2s;"
+              style-focus="outline: none; border-color: #2f70ef; box-shadow: 0 0 0 3px rgba(47, 112, 239, 0.1);"
+            />
+            <p style="font-size: 12px; color: #5f6b74; margin-top: 6px;">Must be unique within your account</p>
+          </div>
+
+          <!-- Draws Allowed Toggle -->
+          <div style="padding: 16px; background: #f8fafb; border: 1px solid #e0e5f2; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: #1f272e;">Draws allowed</p>
+              <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">Matches can end in a tie</p>
+            </div>
+            <label style="display: flex; align-items: center; cursor: pointer;">
+              <input
+                type="checkbox"
+                checked="{{ drawsAllowed }}"
+                onChange="{{ (e) => updateField('drawsAllowed', e.target.checked) }}"
+                style="width: 20px; height: 20px; cursor: pointer; accent-color: #2f70ef;"
+              />
+            </label>
+          </div>
+
+
+        </div>
+      </sc-if>
+
+      <!-- Step 2: Join Mode & Summary -->
+      <sc-if value="{{ stepTwoVisible }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 24px;">Join Mode & Invite</h2>
+
+          <!-- Join Mode Toggle -->
+          <div style="margin-bottom: 32px; padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div>
+                <p style="font-size: 14px; font-weight: 600; color: #1f272e;">Who can join?</p>
+                <p style="font-size: 12px; color: #5f6b74; margin-top: 4px;">{{ joinModeDescription }}</p>
+              </div>
+              <button
+                onClick="{{ () => updateField('joinMode', joinMode === 'open' ? 'gated' : 'open') }}"
+                style="padding: 6px 16px; border: 1px solid #d0d7e0; border-radius: 100px; background: white; font-size: 12px; font-weight: 600; color: #2f70ef; cursor: pointer; transition: all 0.2s;"
+                style-hover="background: #f0f4ff;"
+              >
+                {{ joinModeLabel }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div style="padding: 20px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; margin-bottom: 32px;">
+            <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #8695a7; margin-bottom: 16px;">Community Summary</h3>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #e0e5f2;">
+                <span style="font-size: 14px; color: #5f6b74;">Name</span>
+                <span style="font-size: 14px; font-weight: 600; color: #1f272e;">{{ communityName }}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 14px; color: #5f6b74;">Join Mode</span>
+                <span style="font-size: 14px; font-weight: 600; color: #1f272e;">{{ joinModeLabel }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generated Codes -->
+          <sc-if value="{{ showGeneratedCodes }}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 20px; background: #f0f4ff; border: 1px solid #d6e3fe; border-radius: 8px; margin-bottom: 24px;">
+              <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #2f70ef; margin-bottom: 12px;">Share your community</p>
+              
+              <!-- Invite Link -->
+              <div style="margin-bottom: 12px;">
+                <p style="font-size: 11px; color: #5f6b74; margin-bottom: 6px;">Invite Link</p>
+                <div style="display: flex; gap: 8px;">
+                  <input
+                    type="text"
+                    value="{{ inviteLink }}"
+                    readOnly="true"
+                    style="flex: 1; padding: 10px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: monospace; background: white; color: #1f272e;"
+                  />
+                  <button
+                    onClick="{{ () => copyToClipboard(inviteLink) }}"
+                    style="padding: 10px 16px; background: white; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 12px; font-weight: 600; color: #2f70ef; cursor: pointer; transition: all 0.2s;"
+                    style-hover="background: white; border-color: #2f70ef;"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Join Code -->
+              <div>
+                <p style="font-size: 11px; color: #5f6b74; margin-bottom: 6px;">Join Code</p>
+                <div style="display: flex; gap: 8px;">
+                  <input
+                    type="text"
+                    value="{{ joinCode }}"
+                    readOnly="true"
+                    style="flex: 1; padding: 10px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: monospace; background: white; color: #1f272e; letter-spacing: 2px; font-weight: 600;"
+                  />
+                  <button
+                    onClick="{{ () => copyToClipboard(joinCode) }}"
+                    style="padding: 10px 16px; background: white; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 12px; font-weight: 600; color: #2f70ef; cursor: pointer; transition: all 0.2s;"
+                    style-hover="background: white; border-color: #2f70ef;"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- Footer Actions -->
+  <div style="padding: 20px; border-top: 1px solid #e0e5f2; background: white;">
+    <div style="max-width: 600px; margin: 0 auto; display: flex; gap: 12px;">
+      <button onClick="{{ () => previousStep() }}" style="flex: 1; padding: 12px 24px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+        Back
+      </button>
+      <button onClick="{{ () => nextStep() }}" style="flex: 1; padding: 12px 24px; background: #2f70ef; color: white; border: none; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s;">
+        {{ buttonLabel }}
+      </button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    currentStep: 1,
+    communityName: '',
+    selectedRuleset: 1,
+    drawsAllowed: true,
+    joinMode: 'open',
+    inviteLink: 'https://openskill.dev/join/abc123',
+    joinCode: 'APEX5K9',
+    showGeneratedCodes: false,
+  };
+
+  renderVals() {
+    const stepOneVisible = this.state.currentStep === 1;
+    const stepTwoVisible = this.state.currentStep === 2;
+
+    return {
+      currentStep: this.state.currentStep,
+      stepOneVisible: stepOneVisible,
+      stepTwoVisible: stepTwoVisible,
+      communityName: this.state.communityName,
+      drawsAllowed: this.state.drawsAllowed,
+      joinMode: this.state.joinMode,
+      buttonLabel: this.state.currentStep === 1 ? 'Next' : 'Create Community',
+      joinModeLabel: this.state.joinMode === 'open' ? 'Open' : 'Gated (approval required)',
+      joinModeDescription: this.state.joinMode === 'open' 
+        ? 'Anyone can join with the invite link or code'
+        : 'Players must request; you approve',
+      canProceed: this.state.communityName.trim().length > 0,
+      showGeneratedCodes: stepTwoVisible,
+      inviteLink: this.state.inviteLink,
+      joinCode: this.state.joinCode,
+      updateField: (field, value) => {
+        this.setState({ [field]: value });
+      },
+      nextStep: () => {
+        if (this.state.currentStep === 1) {
+          this.setState({ currentStep: 2 });
+        } else {
+          console.log('Community created:', {
+            name: this.state.communityName,
+
+            drawsAllowed: this.state.drawsAllowed,
+            joinMode: this.state.joinMode,
+          });
+        }
+      },
+      previousStep: () => {
+        if (this.state.currentStep > 1) {
+          this.setState({ currentStep: this.state.currentStep - 1 });
+        }
+      },
+      copyToClipboard: (text) => {
+        navigator.clipboard.writeText(text);
+        console.log('Copied:', text);
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

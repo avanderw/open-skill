@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #1f272e;">Team Builder</h1>
+      <p style="font-size: 14px; color: #5f6b74; margin-top: 4px;">Generate balanced teams from available players</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="flex: 1; padding: 40px 20px; overflow-y: auto;">
+    <div style="max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+      
+      <!-- Left Column: Player Selection -->
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 16px;">Available Players</h2>
+        <p style="font-size: 13px; color: #5f6b74; margin-bottom: 12px;">{{ selectedPlayerCount }} / {{ totalPlayerCount }} selected</p>
+        
+        <div style="border: 1px solid #d0d7e0; border-radius: 8px; background: white; max-height: 400px; overflow-y: auto;">
+          <sc-for list="{{ availablePlayers }}" as="player" hint-placeholder-count="5">
+            <label style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #e0e5f2; cursor: pointer; transition: background 0.2s;"
+                   style-hover="background: #f8fafb;">
+              <input
+                type="checkbox"
+                checked="{{ player.selectedState }}"
+                onChange="{{ (e) => togglePlayer(player.id, e.target.checked) }}"
+                style="width: 18px; height: 18px; cursor: pointer; accent-color: #2f70ef;"
+              />
+              <div style="flex: 1; min-width: 0;">
+                <p style="font-size: 14px; font-weight: 600; color: #1f272e;">{{ player.name }}</p>
+                <p style="font-size: 12px; color: #5f6b74;">Rating: {{ player.rating }}</p>
+              </div>
+            </label>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Right Column: Team Configuration -->
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 16px;">Configuration</h2>
+        
+        <!-- Team Count / Size Selection -->
+        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+          <div style="flex: 1;">
+            <label style="display: block; font-size: 12px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Number of Teams</label>
+            <select
+              value="{{ teamCount }}"
+              onChange="{{ (e) => updateConfig('teamCount', e.target.value) }}"
+              style="width: 100%; padding: 10px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: inherit; background: white; color: #1f272e; cursor: pointer;"
+              style-focus="outline: none; border-color: #2f70ef; box-shadow: 0 0 0 3px rgba(47, 112, 239, 0.1);"
+            >
+              <option value="2">2 Teams</option>
+              <option value="3">3 Teams</option>
+              <option value="4">4 Teams</option>
+            </select>
+          </div>
+          
+          <div style="flex: 1;">
+            <label style="display: block; font-size: 12px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Players per Team</label>
+            <input
+              type="number"
+              value="{{ playersPerTeam }}"
+              onInput="{{ (e) => updateConfig('playersPerTeam', e.target.value) }}"
+              min="1"
+              max="10"
+              style="width: 100%; padding: 10px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: inherit; background: white; color: #1f272e;"
+              style-focus="outline: none; border-color: #2f70ef; box-shadow: 0 0 0 3px rgba(47, 112, 239, 0.1);"
+            />
+          </div>
+        </div>
+
+        <!-- Validation Error -->
+        <sc-if value="{{ showValidationError }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 12px 16px; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; margin-bottom: 24px;">
+            <p style="font-size: 13px; color: #dc2626; font-weight: 500;">{{ validationErrorText }}</p>
+          </div>
+        </sc-if>
+
+        <!-- Generate Button -->
+        <button
+          onClick="{{ () => generateTeams() }}"
+          style="width: 100%; padding: 12px 24px; background: #2f70ef; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; {{ !canGenerateTeams ? 'opacity: 0.5; cursor: not-allowed;' : '' }}"
+          style-hover="background: #1655d1;"
+          disabled="{{ !canGenerateTeams }}"
+        >
+          Generate Teams
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generated Teams Section -->
+  <sc-if value="{{ showGeneratedTeams }}" hint-placeholder-val="{{ false }}">
+    <div style="padding: 40px 20px; background: white; border-top: 1px solid #e0e5f2;">
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 700; color: #1f272e;">Generated Teams</h2>
+          <button
+            onClick="{{ () => generateTeams() }}"
+            style="padding: 8px 16px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+            style-hover="background: #f0f4ff;"
+          >
+            Regenerate
+          </button>
+        </div>
+
+        <!-- Balance Score -->
+        <div style="padding: 16px; background: #f0f4ff; border-radius: 8px; margin-bottom: 24px; border: 1px solid #d6e3fe;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <p style="font-size: 12px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 4px;">Balance Score</p>
+              <p style="font-size: 14px; font-weight: 600; color: #1f272e;">{{ balanceScore }}</p>
+            </div>
+            <p style="font-size: 11px; color: #5f6b74; max-width: 200px;">Closer to 1.0 = more balanced. Higher variance = teams more spread across skill range.</p>
+          </div>
+        </div>
+
+        <!-- Team Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 32px;">
+          <sc-for list="{{ generatedTeams }}" as="team" hint-placeholder-count="2">
+            <div style="padding: 20px; background: white; border: 2px solid {{ team.borderColor }}; border-radius: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <div style="width: 40px; height: 40px; border-radius: 8px; background: {{ team.backgroundColor }}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 16px;">
+                  {{ team.labelLetter }}
+                </div>
+                <div>
+                  <h3 style="font-size: 14px; font-weight: 700; color: #1f272e;">{{ team.name }}</h3>
+                  <p style="font-size: 12px; color: #5f6b74;">Avg Rating: {{ team.avgRating }}</p>
+                </div>
+              </div>
+
+              <!-- Players in Team -->
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <sc-for list="{{ team.players }}" as="player" hint-placeholder-count="2">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e0e5f2;">
+                    <span style="font-size: 13px; font-weight: 600; color: #1f272e;">{{ player.name }}</span>
+                    <span style="font-size: 12px; color: #5f6b74;">{{ player.rating }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 12px;">
+          <button
+            onClick="{{ () => acceptTeams() }}"
+            style="flex: 1; padding: 14px 24px; background: #2f70ef; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s;"
+            style-hover="background: #1655d1;"
+          >
+            Accept → Prefill Report Match
+          </button>
+          <button
+            onClick="{{ () => resetBuilder() }}"
+            style="flex: 1; padding: 14px 24px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+            style-hover="background: #f0f4ff;"
+          >
+            Start Over
+          </button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    selectedPlayers: [1, 2, 3, 4],
+    teamCount: '2',
+    playersPerTeam: '2',
+    showTeams: false,
+  };
+
+  renderVals() {
+    const allPlayers = [
+      { id: 1, name: 'shadowPlay', rating: 1842 },
+      { id: 2, name: 'ProGamer92', rating: 1785 },
+      { id: 3, name: 'LunarEcho', rating: 1742 },
+      { id: 4, name: 'PixelMaster', rating: 1698 },
+      { id: 5, name: 'VortexKing', rating: 1645 },
+      { id: 6, name: 'NeonAce', rating: 1620 },
+    ];
+
+    const selectedCount = this.state.selectedPlayers.length;
+    const totalPlayers = allPlayers.length;
+    const teamCount = parseInt(this.state.teamCount);
+    const playersPerTeam = parseInt(this.state.playersPerTeam);
+    const requiredPlayers = teamCount * playersPerTeam;
+    const hasEnoughPlayers = selectedCount >= requiredPlayers;
+    const canGenerate = selectedCount > 0 && hasEnoughPlayers;
+
+    const generatedTeams = [
+      {
+        name: 'Team A',
+        labelLetter: 'A',
+        backgroundColor: '#2f70ef',
+        borderColor: '#2f70ef',
+        avgRating: '1814',
+        players: [
+          { name: 'shadowPlay', rating: 1842 },
+          { name: 'NeonAce', rating: 1620 },
+        ],
+      },
+      {
+        name: 'Team B',
+        labelLetter: 'B',
+        backgroundColor: '#8b5cf6',
+        borderColor: '#8b5cf6',
+        avgRating: '1763',
+        players: [
+          { name: 'ProGamer92', rating: 1785 },
+          { name: 'LunarEcho', rating: 1742 },
+        ],
+      },
+    ];
+
+    const validationError = !hasEnoughPlayers && selectedCount > 0;
+    const validationErrorMsg = `Need ${requiredPlayers} players (${teamCount} teams × ${playersPerTeam} per team), but only ${selectedCount} selected`;
+
+    return {
+      availablePlayers: allPlayers.map(p => ({
+        ...p,
+        selectedState: this.state.selectedPlayers.includes(p.id),
+      })),
+      selectedPlayerCount: selectedCount.toString(),
+      totalPlayerCount: totalPlayers.toString(),
+      teamCount: this.state.teamCount,
+      playersPerTeam: this.state.playersPerTeam,
+      canGenerateTeams: canGenerate,
+      showValidationError: validationError,
+      validationErrorText: validationErrorMsg,
+      showGeneratedTeams: this.state.showTeams,
+      generatedTeams: generatedTeams,
+      balanceScore: '0.92',
+      togglePlayer: (id, checked) => {
+        this.setState(s => ({
+          selectedPlayers: checked
+            ? [...s.selectedPlayers, id]
+            : s.selectedPlayers.filter(p => p !== id),
+        }));
+      },
+      updateConfig: (field, value) => {
+        if (field === 'teamCount') {
+          this.setState({ teamCount: value });
+        } else if (field === 'playersPerTeam') {
+          this.setState({ playersPerTeam: value });
+        }
+      },
+      generateTeams: () => {
+        this.setState({ showTeams: true });
+      },
+      acceptTeams: () => {
+        console.log('Accept teams and prefill report match');
+      },
+      resetBuilder: () => {
+        this.setState({ showTeams: false });
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

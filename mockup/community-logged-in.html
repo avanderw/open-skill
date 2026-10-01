@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Communities - Logged In - Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 26, 0.14), transparent 30%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+    button, input { font: inherit; }
+
+    .page-wrap {
+      min-height: 100vh;
+      padding: 28px 20px 40px;
+    }
+
+    .page-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .label-caps {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+      margin-bottom: 8px;
+    }
+
+    .header-card {
+      padding: 26px 28px;
+      margin-bottom: 20px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-title {
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--theme-text);
+      margin-bottom: 8px;
+    }
+
+    .header-subtitle {
+      font-size: 15px;
+      color: var(--theme-text-muted);
+      line-height: 24px;
+      max-width: 640px;
+    }
+
+    .player-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--theme-border);
+    }
+
+    .player-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--theme-text);
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      border-top: 1px solid var(--theme-border);
+    }
+
+    .mini-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-border);
+      color: var(--theme-text);
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .mini-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--theme-text);
+    }
+
+    .player-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      color: var(--brand-white);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 0 0 2px var(--theme-accent), 0 0 14px rgba(240, 90, 26, 0.35);
+    }
+
+    .player-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .player-name {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--theme-text);
+    }
+
+    .player-status {
+      font-size: 11px;
+      color: var(--brand-muted);
+      font-weight: 600;
+    }
+
+    .view-populated {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+      gap: 16px;
+    }
+
+    .communities-panel {
+      padding: 24px;
+    }
+
+    .communities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .community-card {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--theme-border);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 180px;
+    }
+
+    .community-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .community-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .community-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--brand-white);
+      flex-shrink: 0;
+    }
+
+    .community-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--theme-text);
+      line-height: 20px;
+      word-break: break-word;
+    }
+
+    .community-mode {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--theme-accent);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .community-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat-tile {
+      padding: 10px 8px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--brand-muted);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 14px;
+      color: var(--theme-text);
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .community-meta {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--theme-border);
+      font-size: 12px;
+      color: var(--theme-text-muted);
+    }
+
+    .community-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      border-top: 1px solid var(--theme-border);
+    }
+
+    .btn-primary {
+      padding: 12px 22px;
+      background: var(--theme-accent);
+      color: var(--brand-white);
+      border: none;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover { background: var(--theme-accent-hover); }
+
+    .btn-secondary {
+      padding: 12px 22px;
+      background: transparent;
+      color: var(--theme-accent);
+      border: 1px solid var(--theme-accent);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .btn-secondary:hover { background: rgba(240, 90, 26, 0.1); }
+
+    .quick-join-panel {
+      padding: 24px;
+      height: fit-content;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 12px;
+      color: var(--theme-text-muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--theme-text);
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+
+    .text-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+    .text-input:focus {
+      outline: none;
+      border-color: var(--theme-accent);
+      box-shadow: 0 0 0 3px rgba(240, 90, 26, 0.18);
+    }
+
+    .helper-text {
+      font-size: 12px;
+      line-height: 20px;
+      color: var(--theme-text-muted);
+    }
+
+    .list-demos {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--theme-border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .demo-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .demo-name {
+      font-size: 12px;
+      color: var(--theme-text);
+      font-weight: 700;
+    }
+
+    .demo-code {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--theme-accent);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 900px) {
+      .view-populated {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-join-panel {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .header-card,
+      .communities-panel,
+      .quick-join-panel {
+        padding: 18px;
+      }
+
+      .header-title {
+        font-size: 29px;
+      }
+
+      .community-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-inner">
+
+      <section class="card header-card">
+        <div class="header-top">
+          <div>
+            <p class="label-caps">Player space</p>
+            <h1 class="header-title">My Communities</h1>
+            <p class="header-subtitle">
+              Browse communities you belong to, jump into a community, or use a join code to enter a new one.
+            </p>
+          </div>
+          <a class="player-chip" href="./profile.html" aria-label="Open profile">
+            <span class="player-avatar">IC</span>
+            <span class="player-meta">
+              <span class="player-name">IronCrest</span>
+              <span class="player-status">Signed in • Profile</span>
+            </span>
+          </a>
+        </div>
+
+        <div class="header-links">
+          <a class="mini-link" href="./profile.html">View profile</a>
+          <a class="mini-link" href="./report-match.html">Report match</a>
+          <a class="mini-link" href="./team-mockup.html">Team builder</a>
+          <a class="mini-link" href="./leaderboard-logged-in.html">Leaderboard</a>
+        </div>
+
+      </section>
+
+      <section class="view-populated">
+        <div class="card communities-panel">
+          <p class="label-caps">Your communities</p>
+          <div class="communities-grid">
+
+            <a href="./leaderboard-logged-in.html" class="community-card" style="text-decoration: none;">
+              <div class="community-head">
+                <div class="community-title-wrap">
+                  <span class="community-avatar">AL</span>
+                  <h2 class="community-name">Apex Legends Competitive</h2>
+                </div>
+                <span class="community-mode">Approval</span>
+              </div>
+              <div class="community-stats">
+                <div class="stat-tile">
+                  <p class="stat-label">Members</p>
+                  <p class="stat-value">24</p>
+                </div>
+                <div class="stat-tile">
+                  <p class="stat-label">Rating</p>
+                  <p class="stat-value">1642</p>
+                </div>
+                <div class="stat-tile">
+                  <p class="stat-label">Matches</p>
+                  <p class="stat-value">96</p>
+                </div>
+              </div>
+              <p class="community-meta">Last active 3 hours ago</p>
+            </a>
+
+            <a href="./leaderboard-logged-in.html" class="community-card" style="text-decoration: none;">
+              <div class="community-head">
+                <div class="community-title-wrap">
+                  <span class="community-avatar">V5</span>
+                  <h2 class="community-name">Valorant Premier Hub</h2>
+                </div>
+                <span class="community-mode">Open</span>
+              </div>
+              <div class="community-stats">
+                <div class="stat-tile">
+                  <p class="stat-label">Members</p>
+                  <p class="stat-value">18</p>
+                </div>
+                <div class="stat-tile">
+                  <p class="stat-label">Rating</p>
+                  <p class="stat-value">1580</p>
+                </div>
+                <div class="stat-tile">
+                  <p class="stat-label">Matches</p>
+                  <p class="stat-value">67</p>
+                </div>
+              </div>
+              <p class="community-meta">Last active 1 day ago</p>
+            </a>
+
+            <a href="./leaderboard-logged-in.html" class="community-card" style="text-decoration: none;">
+              <div class="community-head">
+                <div class="community-title-wrap">
+                  <span class="community-avatar">FG</span>
+                  <h2 class="community-name">Fighting Game Night</h2>
+                </div>
+                <span class="community-mode">Open</span>
+              </div>
+              <div class="community-stats">
+                <div class="stat-tile">
+                  <p class="stat-label">Members</p>
+                  <p class="stat-value">32</p>
+                </div>
+                <div class="stat-tile">
+                  <p class="stat-label">Rating</p>
+                  <p class="stat-value">1705</p>
+                </div>
+                <div class="stat-tile">
+                  <p class="stat-label">Matches</p>
+                  <p class="stat-value">112</p>
+                </div>
+              </div>
+              <p class="community-meta">Last active 45 min ago</p>
+            </a>
+          </div>
+
+          <div class="community-actions">
+            <a class="btn-primary" href="./create-community.html">Create Community</a>
+          </div>
+        </div>
+
+        <aside class="card quick-join-panel">
+          <p class="label-caps">Quick join</p>
+          <h2 style="font-size: 23px; font-weight: 700; line-height: 1.2; margin-bottom: 10px;">Join another community</h2>
+          <p class="helper-text" style="margin-bottom: 14px;">
+            Enter a join code from an organiser. You will be added instantly or sent for approval.
+          </p>
+
+          <label for="join-code" class="input-label">Join code</label>
+          <input id="join-code" type="text" class="text-input" placeholder="ENTER CODE" oninput="this.value = this.value.toUpperCase()">
+          <a class="btn-primary" href="./join-community.html" style="width: 100%;">Join with code</a>
+
+          <div class="list-demos">
+            <div class="demo-row">
+              <span class="demo-name">Open Cup Johannesburg</span>
+              <span class="demo-code">OCJ9T2</span>
+            </div>
+            <div class="demo-row">
+              <span class="demo-name">Weekend Clutch League</span>
+              <span class="demo-code">WCL8K4</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+    </div>
+  </div>
+</body>
+</html>

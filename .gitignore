@@ -1,0 +1,30 @@
+# Node / Svelte (app)
+node_modules/
+.svelte-kit/
+build/
+dist/
+.env
+.env.local
+.env.*.local
+
+# Go (service)
+service/bin/
+service/tmp/
+*.test
+
+# SQLite data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

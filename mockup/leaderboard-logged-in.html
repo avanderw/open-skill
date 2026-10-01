@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leaderboard — Radloff</title>
+  <link rel="stylesheet" href="./theme/radloff.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 26, 0.14), transparent 28%),
+        linear-gradient(180deg, #0b0b0b 0%, var(--brand-black) 100%);
+      color: var(--theme-text);
+      min-height: 100vh;
+    }
+
+    a { color: var(--theme-accent); text-decoration: none; }
+    a:hover { color: var(--theme-accent-hover); }
+
+    .page-wrap { min-height: 100vh; padding: 28px 20px 40px; }
+    .page-inner { max-width: 1120px; margin: 0 auto; }
+
+    .header-card,
+    .section-card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .header-card { padding: 26px 28px; margin-bottom: 20px; }
+    .section-card { padding: 24px; margin-bottom: 16px; }
+
+    .label-caps {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--theme-accent);
+      margin-bottom: 8px;
+    }
+
+    /* ── Header top bar ─────────────────────────────── */
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .header-identity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .account-menu {
+      position: relative;
+    }
+    .account-toggle {
+      border: 1px solid transparent;
+      background: transparent;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 12px;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .account-toggle:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--theme-border);
+    }
+    .account-toggle:focus-visible {
+      outline: 2px solid var(--theme-accent);
+      outline-offset: 2px;
+    }
+    .account-chevron {
+      font-size: 12px;
+      color: var(--brand-muted);
+      transform: rotate(0deg);
+      transition: transform 0.2s ease;
+    }
+    .account-menu.open .account-chevron {
+      transform: rotate(180deg);
+    }
+    .account-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      min-width: 176px;
+      border: 1px solid var(--theme-border);
+      background: #121212;
+      border-radius: 12px;
+      box-shadow: 0 16px 35px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      z-index: 30;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .account-menu.open .account-dropdown {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .account-action {
+      width: 100%;
+      display: block;
+      text-align: left;
+      padding: 11px 13px;
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      background: transparent;
+      color: var(--theme-text);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.16s ease, color 0.16s ease;
+    }
+    .account-action:first-child {
+      border-top: none;
+    }
+    .account-action:hover,
+    .account-action:focus-visible {
+      background: rgba(240, 90, 26, 0.14);
+      color: var(--theme-accent);
+      outline: none;
+    }
+    .account-action.signout {
+      color: #ffb3b3;
+    }
+    .account-action.signout:hover,
+    .account-action.signout:focus-visible {
+      color: #ff8b8b;
+      background: rgba(248, 136, 136, 0.12);
+    }
+    .header-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px var(--theme-accent), 0 0 14px rgba(240,90,26,0.35);
+    }
+    .header-identity-meta { display: flex; flex-direction: column; gap: 2px; }
+    .header-identity-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--theme-text);
+      line-height: 1;
+    }
+    .header-identity-label {
+      font-size: 11px;
+      color: var(--brand-muted);
+      font-weight: 600;
+    }
+
+    /* ── Your rankings badges ───────────────────────── */
+    .your-ranks {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 16px;
+      border-top: 1px solid var(--theme-border);
+    }
+    .your-ranks-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+      align-self: center;
+      margin-right: 4px;
+    }
+    .rank-badge {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--theme-border);
+      border-radius: 10px;
+      padding: 8px 14px;
+    }
+    .rank-badge-mode {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-muted);
+    }
+    .rank-badge-pos {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--theme-accent);
+      line-height: 1;
+    }
+    .rank-badge-suffix {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand-muted);
+      margin-bottom: 1px;
+    }
+
+    /* ── Section ────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--theme-border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: rgba(255, 255, 255, 0.04); }
+    th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--brand-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--theme-border);
+      font-size: 14px;
+      color: var(--theme-text);
+    }
+
+    .rank { font-weight: 800; color: var(--theme-accent); width: 56px; }
+    .player {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 180px;
+    }
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #b83c08, var(--brand-primary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+    }
+    .player-meta { display: flex; flex-direction: column; gap: 2px; }
+    .player-name { font-weight: 700; color: var(--theme-text); font-size: 14px; }
+    .player-note { font-size: 11px; color: var(--brand-muted); }
+
+    .rating { text-align: center; font-weight: 700; width: 96px; }
+    .trend { text-align: center; width: 100px; font-weight: 700; }
+    .matches { text-align: center; width: 90px; color: var(--theme-text-muted); font-weight: 700; }
+
+    .trend-up { color: #6ee7b7; }
+    .trend-down { color: #f88; }
+    .trend-flat { color: var(--brand-muted); }
+
+    /* ── Player row highlight ───────────────────────── */
+    tr.row-you {
+      background: rgba(240, 90, 26, 0.09);
+    }
+    tr.row-you td {
+      border-top-color: rgba(240, 90, 26, 0.28);
+    }
+    tr.row-you + tr td {
+      border-top-color: rgba(240, 90, 26, 0.28);
+    }
+    tr.row-you td:first-child {
+      border-left: 3px solid var(--theme-accent);
+      padding-left: 11px;
+    }
+    tr.row-you .player-name {
+      color: var(--theme-accent);
+    }
+    tr.row-you .rank {
+      color: var(--theme-accent);
+    }
+    tr.row-you .avatar {
+      box-shadow: 0 0 0 2px var(--theme-accent), 0 0 10px rgba(240, 90, 26, 0.35);
+    }
+
+    .you-badge {
+      display: inline-block;
+      background: var(--theme-accent);
+      color: white;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-left: 7px;
+      vertical-align: middle;
+      line-height: 1.6;
+    }
+
+    /* ── Rank gap separator ─────────────────────────── */
+    tr.rank-gap td {
+      padding: 0;
+      border-top: none;
+    }
+    .rank-gap-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 16px;
+      background: rgba(0, 0, 0, 0.18);
+      border-top: 2px dashed rgba(255, 255, 255, 0.07);
+      border-bottom: 2px dashed rgba(255, 255, 255, 0.07);
+    }
+    .rank-gap-dots {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.45em;
+      color: rgba(255, 255, 255, 0.2);
+      line-height: 1;
+    }
+    .rank-gap-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.18);
+    }
+
+    .section-footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--theme-border);
+      text-align: right;
+    }
+
+    .full-link {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--theme-accent);
+    }
+
+    @media (max-width: 760px) {
+      .header-card, .section-card { padding: 18px; }
+      th:nth-child(4), td:nth-child(4) { display: none; }
+      .account-dropdown {
+        right: auto;
+        left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-inner">
+
+      <!-- ── Header ───────────────────────────────────── -->
+      <div class="header-card">
+        <div class="header-top">
+          <div>
+        <p class="label-caps">Community rankings</p>
+        <h1 style="font-size: 34px; font-weight: 700; line-height: 1.1; color: var(--theme-text); margin-bottom: 8px;">Leaderboard</h1>
+            <p style="font-size: 15px; color: var(--theme-text-muted); line-height: 24px; max-width: 640px;">
+              Your position is highlighted across each ruleset. Rankings update after every rated match.
+            </p>
+            <p style="margin-top: 10px;">
+              <a class="full-link" href="./community-logged-in.html">&larr; Back to my communities</a>
+            </p>
+          </div>
+          <div class="account-menu" data-account-menu>
+            <button class="header-identity account-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="account-dropdown">
+              <span class="header-avatar">IC</span>
+              <span class="header-identity-meta">
+                <span class="header-identity-name">IronCrest</span>
+                <span class="header-identity-label">Signed in</span>
+              </span>
+              <span class="account-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="account-dropdown" id="account-dropdown" role="menu" aria-label="Account menu" hidden>
+              <a class="account-action" role="menuitem" href="./profile.html">View profile</a>
+              <a class="account-action signout" role="menuitem" href="./leaderboard-logged-out.html">Sign out</a>
+            </div>
+          </div>
+        </div>
+        <div class="your-ranks">
+          <span class="your-ranks-label">Your ranks</span>
+          <div class="rank-badge">
+            <span class="rank-badge-mode">1v1</span>
+            <span class="rank-badge-pos">#2</span>
+            <span class="rank-badge-suffix">of 2 842</span>
+          </div>
+          <div class="rank-badge">
+            <span class="rank-badge-mode">Team</span>
+            <span class="rank-badge-pos">#9</span>
+            <span class="rank-badge-suffix">of 1 204</span>
+          </div>
+          <div class="rank-badge">
+            <span class="rank-badge-mode">FFA</span>
+            <span class="rank-badge-pos">#14</span>
+            <span class="rank-badge-suffix">of 5 617</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 1v1 — rank 2, shown inline in top 10 ─────── -->
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">1v1</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">Top 10 Players</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="rank">1</td><td><div class="player"><span class="avatar">SP</span><div class="player-meta"><span class="player-name">shadowPlay</span></div></div></td><td class="rating">1842</td><td class="trend trend-up">+45</td><td class="matches">24</td></tr>
+              <tr class="row-you"><td class="rank">2</td><td><div class="player"><span class="avatar">IC</span><div class="player-meta"><span class="player-name">IronCrest<span class="you-badge">You</span></span></div></div></td><td class="rating">1785</td><td class="trend trend-down">−12</td><td class="matches">31</td></tr>
+              <tr><td class="rank">3</td><td><div class="player"><span class="avatar">LE</span><div class="player-meta"><span class="player-name">LunarEcho</span><span class="player-note">New this season</span></div></div></td><td class="rating">1742</td><td class="trend trend-up">+23</td><td class="matches">8</td></tr>
+              <tr><td class="rank">4</td><td><div class="player"><span class="avatar">PM</span><div class="player-meta"><span class="player-name">PixelMaster</span></div></div></td><td class="rating">1698</td><td class="trend trend-flat">+2</td><td class="matches">19</td></tr>
+              <tr><td class="rank">5</td><td><div class="player"><span class="avatar">VK</span><div class="player-meta"><span class="player-name">VortexKing</span></div></div></td><td class="rating">1645</td><td class="trend trend-up">+67</td><td class="matches">5</td></tr>
+              <tr><td class="rank">6</td><td><div class="player"><span class="avatar">NR</span><div class="player-meta"><span class="player-name">NovaRift</span></div></div></td><td class="rating">1621</td><td class="trend trend-up">+8</td><td class="matches">17</td></tr>
+              <tr><td class="rank">7</td><td><div class="player"><span class="avatar">TR</span><div class="player-meta"><span class="player-name">TempestRook</span></div></div></td><td class="rating">1598</td><td class="trend trend-down">−6</td><td class="matches">22</td></tr>
+              <tr><td class="rank">8</td><td><div class="player"><span class="avatar">BL</span><div class="player-meta"><span class="player-name">BlazeLock</span></div></div></td><td class="rating">1579</td><td class="trend trend-up">+11</td><td class="matches">14</td></tr>
+              <tr><td class="rank">9</td><td><div class="player"><span class="avatar">DK</span><div class="player-meta"><span class="player-name">DriftKnight</span><span class="player-note">New this season</span></div></div></td><td class="rating">1552</td><td class="trend trend-flat">0</td><td class="matches">12</td></tr>
+              <tr><td class="rank">10</td><td><div class="player"><span class="avatar">QE</span><div class="player-meta"><span class="player-name">QuantaEdge</span></div></div></td><td class="rating">1528</td><td class="trend trend-up">+4</td><td class="matches">16</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-footer"><a class="full-link" href="./leaderboard-full.html?mode=1v1">See full 1v1 leaderboard →</a></div>
+      </section>
+
+      <!-- ── Team — rank 8, split: top 5 + ranks 6–10 ─── -->
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">Team</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">Top 5 Teams · Your Position</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <!-- Top 5 -->
+            <tbody>
+              <tr><td class="rank">1</td><td><div class="player"><span class="avatar">AS</span><div class="player-meta"><span class="player-name">Alpha Squad</span></div></div></td><td class="rating">1920</td><td class="trend trend-up">+52</td><td class="matches">18</td></tr>
+              <tr><td class="rank">2</td><td><div class="player"><span class="avatar">PF</span><div class="player-meta"><span class="player-name">Phantom Force</span></div></div></td><td class="rating">1865</td><td class="trend trend-flat">+5</td><td class="matches">22</td></tr>
+              <tr><td class="rank">3</td><td><div class="player"><span class="avatar">NC</span><div class="player-meta"><span class="player-name">Nexus Collective</span></div></div></td><td class="rating">1801</td><td class="trend trend-down">−18</td><td class="matches">26</td></tr>
+              <tr><td class="rank">4</td><td><div class="player"><span class="avatar">OS</span><div class="player-meta"><span class="player-name">Omega Strike</span></div></div></td><td class="rating">1770</td><td class="trend trend-up">+14</td><td class="matches">19</td></tr>
+              <tr><td class="rank">5</td><td><div class="player"><span class="avatar">RB</span><div class="player-meta"><span class="player-name">Rogue Battalion</span></div></div></td><td class="rating">1749</td><td class="trend trend-down">−3</td><td class="matches">21</td></tr>
+            </tbody>
+            <!-- Separator -->
+            <tbody>
+              <tr class="rank-gap">
+                <td colspan="5">
+                  <div class="rank-gap-inner">
+                    <span class="rank-gap-dots">· · ·</span>
+                    <span class="rank-gap-label">Your position context</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <!-- Ranks 6–10 (player at 8) -->
+            <tbody>
+              <tr><td class="rank">7</td><td><div class="player"><span class="avatar">VV</span><div class="player-meta"><span class="player-name">Vanta Vipers</span></div></div></td><td class="rating">1728</td><td class="trend trend-up">+9</td><td class="matches">15</td></tr>
+              <tr><td class="rank">8</td><td><div class="player"><span class="avatar">SW</span><div class="player-meta"><span class="player-name">Solar Wolves</span><span class="player-note">Rookie roster</span></div></div></td><td class="rating">1702</td><td class="trend trend-up">+27</td><td class="matches">10</td></tr>
+              <tr class="row-you"><td class="rank">9</td><td><div class="player"><span class="avatar">IC</span><div class="player-meta"><span class="player-name">Iron Legion<span class="you-badge">You</span></span></div></div></td><td class="rating">1684</td><td class="trend trend-flat">+1</td><td class="matches">14</td></tr>
+              <tr><td class="rank">10</td><td><div class="player"><span class="avatar">HC</span><div class="player-meta"><span class="player-name">Hex Crew</span></div></div></td><td class="rating">1668</td><td class="trend trend-down">−7</td><td class="matches">20</td></tr>
+              <tr><td class="rank">11</td><td><div class="player"><span class="avatar">TZ</span><div class="player-meta"><span class="player-name">Titan Zero</span></div></div></td><td class="rating">1651</td><td class="trend trend-up">+6</td><td class="matches">13</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-footer"><a class="full-link" href="./leaderboard-full.html?mode=team">See full team leaderboard →</a></div>
+      </section>
+
+      <!-- ── FFA — rank 14, split: top 5 + ranks 12–16 ─── -->
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="label-caps" style="margin-bottom: 4px;">FFA</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--theme-text);">Top 5 Players · Your Position</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th style="text-align:center;">Rating</th>
+                <th style="text-align:center;">Trend</th>
+                <th style="text-align:center;">Matches</th>
+              </tr>
+            </thead>
+            <!-- Top 5 -->
+            <tbody>
+              <tr><td class="rank">1</td><td><div class="player"><span class="avatar">EK</span><div class="player-meta"><span class="player-name">EchoKnight</span></div></div></td><td class="rating">1756</td><td class="trend trend-up">+34</td><td class="matches">29</td></tr>
+              <tr><td class="rank">2</td><td><div class="player"><span class="avatar">C7</span><div class="player-meta"><span class="player-name">Cipher7</span><span class="player-note">Rapid climb</span></div></div></td><td class="rating">1712</td><td class="trend trend-up">+78</td><td class="matches">11</td></tr>
+              <tr><td class="rank">3</td><td><div class="player"><span class="avatar">VK</span><div class="player-meta"><span class="player-name">VortexKing</span></div></div></td><td class="rating">1658</td><td class="trend trend-flat">+1</td><td class="matches">35</td></tr>
+              <tr><td class="rank">4</td><td><div class="player"><span class="avatar">SL</span><div class="player-meta"><span class="player-name">StarLancer</span></div></div></td><td class="rating">1637</td><td class="trend trend-up">+12</td><td class="matches">20</td></tr>
+              <tr><td class="rank">5</td><td><div class="player"><span class="avatar">NV</span><div class="player-meta"><span class="player-name">NightVolt</span></div></div></td><td class="rating">1619</td><td class="trend trend-down">−9</td><td class="matches">27</td></tr>
+            </tbody>
+            <!-- Separator -->
+            <tbody>
+              <tr class="rank-gap">
+                <td colspan="5">
+                  <div class="rank-gap-inner">
+                    <span class="rank-gap-dots">· · ·</span>
+                    <span class="rank-gap-label">Ranks 6–11 not shown</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <!-- Ranks 12–16 (player at 14) -->
+            <tbody>
+              <tr><td class="rank">12</td><td><div class="player"><span class="avatar">ZB</span><div class="player-meta"><span class="player-name">ZephyrBolt</span></div></div></td><td class="rating">1518</td><td class="trend trend-up">+3</td><td class="matches">22</td></tr>
+              <tr><td class="rank">13</td><td><div class="player"><span class="avatar">CR</span><div class="player-meta"><span class="player-name">CrestRunner</span></div></div></td><td class="rating">1504</td><td class="trend trend-down">−5</td><td class="matches">17</td></tr>
+              <tr class="row-you"><td class="rank">14</td><td><div class="player"><span class="avatar">IC</span><div class="player-meta"><span class="player-name">IronCrest<span class="you-badge">You</span></span></div></div></td><td class="rating">1491</td><td class="trend trend-up">+16</td><td class="matches">28</td></tr>
+              <tr><td class="rank">15</td><td><div class="player"><span class="avatar">SB</span><div class="player-meta"><span class="player-name">ShadowByte</span></div></div></td><td class="rating">1477</td><td class="trend trend-up">+2</td><td class="matches">11</td></tr>
+              <tr><td class="rank">16</td><td><div class="player"><span class="avatar">PH</span><div class="player-meta"><span class="player-name">PulseHawk</span></div></div></td><td class="rating">1462</td><td class="trend trend-down">−8</td><td class="matches">19</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-footer"><a class="full-link" href="./leaderboard-full.html?mode=ffa">See full FFA leaderboard →</a></div>
+      </section>
+
+    </div>
+  </div>
+<style>
+  /* FAB Styling */
+.fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--theme-accent);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  background: var(--theme-accent-hover);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab svg {
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.fab-wrap { position: fixed; bottom: 32px; right: 32px; z-index: 1000; }
+.fab-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  min-width: 200px;
+  border: 1px solid var(--theme-border);
+  background: #121212;
+  border-radius: 12px;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.fab-wrap.open .fab-menu {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.fab-wrap.open .fab svg {
+  transform: rotate(45deg);
+}
+.fab-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: var(--theme-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.fab-menu-item:first-child { border-top: none; }
+.fab-menu-item:hover {
+  background: rgba(240, 90, 26, 0.14);
+  color: var(--theme-accent);
+}
+.fab-menu-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Mobile Adjustments */
+@media (max-width: 760px) {
+  .fab-wrap { bottom: 24px; right: 24px; }
+  .fab {
+    width: 52px;
+    height: 52px;
+  }
+}
+</style>
+<div class="fab-wrap" data-fab-menu>
+  <div class="fab-menu" role="menu" aria-label="Actions">
+    <a class="fab-menu-item" role="menuitem" href="./report-match.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Report Match
+    </a>
+    <a class="fab-menu-item" role="menuitem" href="./team-mockup.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Team Builder
+    </a>
+  </div>
+  <button class="fab" aria-label="Actions" aria-haspopup="true" aria-expanded="false">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+</div>
+<script>
+  // Account menu
+  const accountMenu = document.querySelector("[data-account-menu]");
+  const accountToggle = accountMenu ? accountMenu.querySelector(".account-toggle") : null;
+
+  if (accountMenu && accountToggle) {
+    const accountDropdown = accountMenu.querySelector(".account-dropdown");
+
+    const closeAccountMenu = () => {
+      accountMenu.classList.remove("open");
+      accountToggle.setAttribute("aria-expanded", "false");
+      if (accountDropdown) {
+        accountDropdown.hidden = true;
+      }
+    };
+
+    accountToggle.addEventListener("click", () => {
+      const isOpen = accountMenu.classList.toggle("open");
+      accountToggle.setAttribute("aria-expanded", String(isOpen));
+      if (accountDropdown) {
+        accountDropdown.hidden = !isOpen;
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!accountMenu.contains(event.target)) {
+        closeAccountMenu();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeAccountMenu();
+      }
+    });
+  }
+
+  // FAB popup menu
+  const fabWrap = document.querySelector("[data-fab-menu]");
+  const fabBtn = fabWrap ? fabWrap.querySelector(".fab") : null;
+
+  if (fabWrap && fabBtn) {
+    const closeFabMenu = () => {
+      fabWrap.classList.remove("open");
+      fabBtn.setAttribute("aria-expanded", "false");
+    };
+
+    fabBtn.addEventListener("click", () => {
+      const isOpen = fabWrap.classList.toggle("open");
+      fabBtn.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!fabWrap.contains(event.target)) {
+        closeFabMenu();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeFabMenu();
+      }
+    });
+  }
+</script>
+</body>
+</html>

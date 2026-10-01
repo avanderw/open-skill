@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 900px; margin: 0 auto;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #1f272e;">Join Mode & Requests</h1>
+      <p style="font-size: 14px; color: #5f6b74; margin-top: 4px;">Admins only • Control community membership</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div style="flex: 1; padding: 40px 20px; overflow-y: auto;">
+    <div style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
+      
+      <!-- Section: Join Mode -->
+      <div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 24px;">Join Mode</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Open Mode Card -->
+          <button
+            onClick="{{ () => setJoinMode('open') }}"
+            style="padding: 24px; background: white; border: 2px solid {{ isOpenMode ? '#2f70ef' : '#e0e5f2' }}; border-radius: 12px; cursor: pointer; text-align: left; transition: all 0.2s;"
+            style-hover="border-color: #2f70ef; background: #f8fafb;"
+          >
+            <h3 style="font-size: 16px; font-weight: 700; color: #1f272e; margin-bottom: 8px;">🔓 Open</h3>
+            <p style="font-size: 13px; color: #5f6b74; line-height: 1.5;">Anyone with the invite link or code can join immediately. No approval needed.</p>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e5f2;">
+              <span style="display: inline-block; font-size: 11px; padding: 4px 8px; background: {{ openBadgeBg }}; color: {{ openBadgeColor }}; border-radius: 4px; font-weight: 600;">{{ openBadgeLabel }}</span>
+            </div>
+          </button>
+
+          <!-- Gated Mode Card -->
+          <button
+            onClick="{{ () => setJoinMode('gated') }}"
+            style="padding: 24px; background: white; border: 2px solid {{ isGatedMode ? '#2f70ef' : '#e0e5f2' }}; border-radius: 12px; cursor: pointer; text-align: left; transition: all 0.2s;"
+            style-hover="border-color: #2f70ef; background: #f8fafb;"
+          >
+            <h3 style="font-size: 16px; font-weight: 700; color: #1f272e; margin-bottom: 8px;">🔒 Gated</h3>
+            <p style="font-size: 13px; color: #5f6b74; line-height: 1.5;">Players must request access. You review and approve/deny requests.</p>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e5f2;">
+              <span style="display: inline-block; font-size: 11px; padding: 4px 8px; background: {{ gatedBadgeBg }}; color: {{ gatedBadgeColor }}; border-radius: 4px; font-weight: 600;">{{ gatedBadgeLabel }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Section: Invite Link & Code -->
+      <div style="padding: 24px; background: white; border: 1px solid #e0e5f2; border-radius: 12px;">
+        <h2 style="font-size: 18px; font-weight: 700; color: #1f272e; margin-bottom: 20px;">Share Community</h2>
+        
+        <!-- Invite Link -->
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 12px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Invite Link</label>
+          <div style="display: flex; gap: 8px;">
+            <input
+              type="text"
+              value="{{ inviteLink }}"
+              readOnly="true"
+              style="flex: 1; padding: 12px 16px; border: 1px solid #d0d7e0; border-radius: 8px; font-size: 13px; font-family: monospace; background: #f8fafb; color: #1f272e; cursor: text;"
+            />
+            <button
+              onClick="{{ () => copyToClipboard(inviteLink) }}"
+              style="padding: 12px 20px; background: white; border: 1px solid #d0d7e0; border-radius: 8px; font-size: 12px; font-weight: 600; color: #2f70ef; cursor: pointer; transition: all 0.2s;"
+              style-hover="background: #f0f4ff;"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Join Code -->
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 12px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 8px;">Join Code</label>
+          <div style="display: flex; gap: 8px;">
+            <input
+              type="text"
+              value="{{ joinCode }}"
+              readOnly="true"
+              style="flex: 1; padding: 12px 16px; border: 1px solid #d0d7e0; border-radius: 8px; font-size: 14px; font-family: monospace; background: #f8fafb; color: #1f272e; letter-spacing: 3px; font-weight: 700; text-align: center; cursor: text;"
+            />
+            <button
+              onClick="{{ () => copyToClipboard(joinCode) }}"
+              style="padding: 12px 20px; background: white; border: 1px solid #d0d7e0; border-radius: 8px; font-size: 12px; font-weight: 600; color: #2f70ef; cursor: pointer; transition: all 0.2s;"
+              style-hover="background: #f0f4ff;"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 8px; padding-top: 16px; border-top: 1px solid #e0e5f2;">
+          <button
+            onClick="{{ () => regenerateInvite() }}"
+            style="flex: 1; padding: 10px 16px; background: white; color: #2f70ef; border: 1px solid #2f70ef; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+            style-hover="background: #f0f4ff;"
+          >
+            Regenerate Invite
+          </button>
+          <button
+            onClick="{{ () => revokeInvite() }}"
+            style="flex: 1; padding: 10px 16px; background: white; color: #ef4444; border: 1px solid #fca5a5; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+            style-hover="background: #ffe0e0;"
+          >
+            Revoke Invite
+          </button>
+        </div>
+      </div>
+
+      <!-- Section: Pending Requests (only show if gated) -->
+      <sc-if value="{{ isGatedMode }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 20px;">Pending Requests ({{ pendingRequestCount }})</h2>
+          
+          <sc-if value="{{ hasPendingRequests }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <sc-for list="{{ pendingRequests }}" as="request" hint-placeholder-count="2">
+                <div style="padding: 16px; background: white; border: 1px solid #e0e5f2; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+                      <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #2f70ef, #1655d1); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+                        {{ request.initials }}
+                      </div>
+                      <div>
+                        <p style="font-size: 14px; font-weight: 600; color: #1f272e;">{{ request.name }}</p>
+                        <p style="font-size: 11px; color: #5f6b74;">Requested {{ request.requestedDate }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                    <button
+                      onClick="{{ () => approveRequest(request.id) }}"
+                      style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;"
+                      style-hover="background: #059669;"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick="{{ () => denyRequest(request.id) }}"
+                      style="padding: 8px 16px; background: white; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                      style-hover="background: #ffe0e0;"
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ !hasPendingRequests }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 40px 20px; text-align: center; background: white; border: 1px solid #e0e5f2; border-radius: 12px;">
+              <p style="font-size: 14px; color: #5f6b74;">No pending requests</p>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- Info Box -->
+      <div style="padding: 16px; background: #f0f4ff; border: 1px solid #d6e3fe; border-radius: 8px;">
+        <p style="font-size: 12px; color: #2f70ef; font-weight: 500;">💡 Tip: You can switch between Open and Gated modes at any time. Existing members are not affected.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    joinMode: 'open',
+    inviteLink: 'https://openskill.dev/join/abc123xyz789',
+    joinCode: 'APEX5K9',
+    pendingRequests: [
+      { id: 1, name: 'NewPlayer87', initials: 'NP', requestedDate: '2 hours ago' },
+      { id: 2, name: 'GamingAce', initials: 'GA', requestedDate: '5 hours ago' },
+    ],
+  };
+
+  renderVals() {
+    const hasPending = this.state.pendingRequests.length > 0;
+    const isOpenMode = this.state.joinMode === 'open';
+    const isGatedMode = this.state.joinMode === 'gated';
+
+    return {
+      joinMode: this.state.joinMode,
+      isOpenMode: isOpenMode,
+      isGatedMode: isGatedMode,
+      openBadgeLabel: isOpenMode ? '✓ Active' : 'Inactive',
+      openBadgeColor: isOpenMode ? '#065f46' : '#2f70ef',
+      openBadgeBg: isOpenMode ? '#d1fae5' : '#f0f4ff',
+      gatedBadgeLabel: isGatedMode ? '✓ Active' : 'Inactive',
+      gatedBadgeColor: isGatedMode ? '#065f46' : '#2f70ef',
+      gatedBadgeBg: isGatedMode ? '#d1fae5' : '#f0f4ff',
+      inviteLink: this.state.inviteLink,
+      joinCode: this.state.joinCode,
+      pendingRequests: this.state.pendingRequests,
+      pendingRequestCount: this.state.pendingRequests.length.toString(),
+      hasPendingRequests: hasPending,
+      setJoinMode: (mode) => {
+        this.setState({ joinMode: mode });
+        console.log('Join mode set to:', mode);
+      },
+      copyToClipboard: (text) => {
+        navigator.clipboard.writeText(text);
+        console.log('Copied:', text);
+      },
+      regenerateInvite: () => {
+        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        this.setState({
+          joinCode: newCode,
+          inviteLink: `https://openskill.dev/join/${Math.random().toString(36).substring(2, 15)}`,
+        });
+        console.log('Invite regenerated');
+      },
+      revokeInvite: () => {
+        this.setState({ joinCode: 'REVOKED', inviteLink: '' });
+        console.log('Invite revoked');
+      },
+      approveRequest: (id) => {
+        this.setState(s => ({
+          pendingRequests: s.pendingRequests.filter(r => r.id !== id),
+        }));
+        console.log('Request approved:', id);
+      },
+      denyRequest: (id) => {
+        this.setState(s => ({
+          pendingRequests: s.pendingRequests.filter(r => r.id !== id),
+        }));
+        console.log('Request denied:', id);
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

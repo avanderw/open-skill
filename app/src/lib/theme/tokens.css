@@ -1,0 +1,47 @@
+/* Design tokens — Open-Skill (ported from mockup/theme/radloff.css) */
+:root {
+	/* Renders native widgets (select popups, scrollbars) against the dark UI. */
+	color-scheme: dark;
+
+	/* Brand */
+	--brand-primary: #f05a1a;
+	--brand-primary-strong: #c63d08;
+	--brand-primary-logo: #f15b22;
+
+	--brand-black: #050505;
+	--brand-ink: #101010;
+	--brand-charcoal: #151515;
+	--brand-logo-charcoal: #231f20;
+	--brand-muted: #777777;
+	--brand-paper: #f4f1ec;
+	--brand-white: #ffffff;
+
+	--brand-line-light: rgba(255, 255, 255, 0.18);
+	--brand-line-dark: rgba(0, 0, 0, 0.12);
+
+	/* Semantic aliases */
+	--theme-bg: var(--brand-black);
+	--theme-surface: var(--brand-charcoal);
+	--theme-surface-alt: var(--brand-paper);
+	--theme-text: var(--brand-white);
+	--theme-text-muted: rgba(255, 255, 255, 0.82);
+	--theme-text-on-light: var(--brand-ink);
+	--theme-accent: var(--brand-primary);
+	--theme-accent-hover: var(--brand-primary-strong);
+	--theme-border: var(--brand-line-light);
+
+	/* State colors */
+	--ok: #6ee7b7;
+	--danger: #f88;
+	--ok-bg: rgba(6, 118, 71, 0.18);
+	--ok-border: rgba(6, 118, 71, 0.45);
+	--danger-bg: rgba(180, 35, 24, 0.16);
+	--danger-border: rgba(180, 35, 24, 0.4);
+
+	/* Argo size/spacing */
+	--radius-card: 24px;
+	--radius-sm: 10px;
+	--radius-pill: 999px;
+	--shadow-card: 0 18px 60px rgba(0, 0, 0, 0.45);
+	--font-sans: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

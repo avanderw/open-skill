@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-tokens.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-assets.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/components/fig-typography.css">
+  <link rel="stylesheet" href="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/styles.css">
+  <script src="_ds/capitec-design-system-14173529-2701-4410-825f-c2f987ecad64/_ds_bundle.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafb; color: #1f272e; }
+    a { color: #2f70ef; text-decoration: none; }
+    a:hover { color: #1655d1; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100vh; background: #f8fafb;">
+  <!-- Header -->
+  <div style="padding: 20px; background: white; border-bottom: 1px solid #e0e5f2;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <h1 style="font-size: 28px; font-weight: 700; color: #1f272e; margin-bottom: 16px;">Match History</h1>
+      
+      <!-- Filters -->
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <label style="display: block; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 6px;">Player</label>
+          <input
+            type="text"
+            placeholder="Filter by player name"
+            value="{{ filterPlayer }}"
+            onInput="{{ (e) => updateFilter('player', e.target.value) }}"
+            style="padding: 8px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: inherit; background: white; color: #1f272e; min-width: 200px;"
+            style-focus="outline: none; border-color: #2f70ef; box-shadow: 0 0 0 3px rgba(47, 112, 239, 0.1);"
+          />
+        </div>
+        
+        <div>
+          <label style="display: block; font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 6px;">Date Range</label>
+          <select
+            value="{{ selectedDateRange }}"
+            onChange="{{ (e) => updateFilter('dateRange', e.target.value) }}"
+            style="padding: 8px 12px; border: 1px solid #d0d7e0; border-radius: 6px; font-size: 13px; font-family: inherit; background: white; color: #1f272e; cursor: pointer;"
+          >
+            <option value="allTime">All Time</option>
+            <option value="thisMonth">This Month</option>
+            <option value="thisWeek">This Week</option>
+            <option value="today">Today</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 60px 20px;">
+      <div style="text-align: center; max-width: 400px;">
+        <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: #e0e5f2; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #5f6b74; font-size: 36px; font-weight: 700;">
+          📋
+        </div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1f272e; margin-bottom: 8px;">No Matches Yet</h2>
+        <p style="font-size: 14px; color: #5f6b74; margin-bottom: 24px;">No match history to display. Start by reporting your first match.</p>
+        <a href="/report-match" style="display: inline-block; padding: 12px 24px; background: #2f70ef; color: white; border-radius: 100px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
+           style-hover="background: #1655d1;"
+        >
+          Report Match
+        </a>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Match Cards List -->
+  <sc-if value="{{ !isEmpty }}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; padding: 20px;">
+      <div style="max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px;">
+        <sc-for list="{{ matches }}" as="match" hint-placeholder-count="3">
+          <div style="background: white; border: 1px solid #e0e5f2; border-radius: 12px; overflow: hidden; transition: all 0.2s;">
+            <!-- Card Header (Always Visible) -->
+            <div
+              onClick="{{ () => toggleMatch(match.id) }}"
+              style="padding: 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px;"
+              style-hover="background: #f8fafb;"
+            >
+              <div style="flex: 1; min-width: 0;">
+                <!-- Teams/Participants -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <sc-for list="{{ match.team1 }}" as="player" hint-placeholder-count="1">
+                      <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #2f70ef, #1655d1); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; flex-shrink: 0;" title="{{ player.name }}">
+                        {{ player.initials }}
+                      </div>
+                    </sc-for>
+                  </div>
+                  <span style="font-size: 14px; font-weight: 700; color: #2f70ef;">{{ match.score }}</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <sc-for list="{{ match.team2 }}" as="player" hint-placeholder-count="1">
+                      <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #6d28d9); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; flex-shrink: 0;" title="{{ player.name }}">
+                        {{ player.initials }}
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <!-- Match Meta -->
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                  <span style="font-size: 12px; color: #5f6b74;">{{ match.timestamp }}</span>
+                  <span style="font-size: 12px; color: #8695a7;">Reported by {{ match.reportedBy }}</span>
+                </div>
+              </div>
+
+              <!-- Expand Indicator -->
+              <div style="font-size: 18px; color: #5f6b74; flex-shrink: 0;">
+                {{ match.expandIcon }}
+              </div>
+            </div>
+
+            <!-- Expanded Details (Rating Deltas) -->
+            <sc-if value="{{ match.expandedState }}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 16px; background: #f8fafb; border-top: 1px solid #e0e5f2;">
+                <p style="font-size: 11px; color: #8695a7; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 12px;">Rating Changes</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <sc-for list="{{ match.ratingDeltas }}" as="delta" hint-placeholder-count="2">
+                    <div style="padding: 12px; background: white; border-radius: 8px; border: 1px solid #e0e5f2;">
+                      <p style="font-size: 13px; font-weight: 600; color: #1f272e; margin-bottom: 4px;">{{ delta.playerName }}</p>
+                      <div style="display: flex; align-items: baseline; gap: 6px;">
+                        <span style="font-size: 18px; font-weight: 700; color: #1f272e;">{{ delta.newRating }}</span>
+                        <span style="font-size: 13px; font-weight: 600; color: {{ delta.changeColor }};">{{ delta.changeSign }}{{ delta.changeAmount }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100vh&quot;}}">
+class Component extends DCLogic {
+  state = {
+    filterPlayer: '',
+    selectedDateRange: 'allTime',
+    expandedMatches: {},
+  };
+
+  renderVals() {
+    const allMatches = [
+      {
+        id: 1,
+        team1: [{ name: 'shadowPlay', initials: 'SP' }],
+        team2: [{ name: 'ProGamer92', initials: 'PG' }],
+        score: '2–1',
+        timestamp: '2 hours ago',
+        reportedBy: 'shadowPlay',
+        ratingDeltas: [
+          { playerName: 'shadowPlay', newRating: 1842, changeSign: '+', changeAmount: '18', changeColor: '#10b981' },
+          { playerName: 'ProGamer92', newRating: 1785, changeSign: '-', changeAmount: '18', changeColor: '#ef4444' },
+        ],
+        expandedState: false,
+      },
+      {
+        id: 2,
+        team1: [{ name: 'LunarEcho', initials: 'LE' }],
+        team2: [{ name: 'PixelMaster', initials: 'PM' }],
+        score: '3–2',
+        timestamp: '1 day ago',
+        reportedBy: 'LunarEcho',
+        ratingDeltas: [
+          { playerName: 'LunarEcho', newRating: 1742, changeSign: '+', changeAmount: '23', changeColor: '#10b981' },
+          { playerName: 'PixelMaster', newRating: 1698, changeSign: '-', changeAmount: '23', changeColor: '#ef4444' },
+        ],
+        expandedState: false,
+      },
+      {
+        id: 3,
+        team1: [{ name: 'VortexKing', initials: 'VK' }, { name: 'shadowPlay', initials: 'SP' }],
+        team2: [{ name: 'ProGamer92', initials: 'PG' }, { name: 'LunarEcho', initials: 'LE' }],
+        score: '2–1',
+        timestamp: '3 days ago',
+        reportedBy: 'VortexKing',
+        ratingDeltas: [
+          { playerName: 'VortexKing', newRating: 1645, changeSign: '+', changeAmount: '67', changeColor: '#10b981' },
+          { playerName: 'shadowPlay', newRating: 1824, changeSign: '+', changeAmount: '12', changeColor: '#10b981' },
+          { playerName: 'ProGamer92', newRating: 1803, changeSign: '+', changeAmount: '18', changeColor: '#10b981' },
+          { playerName: 'LunarEcho', newRating: 1719, changeSign: '-', changeAmount: '45', changeColor: '#ef4444' },
+        ],
+        expandedState: false,
+      },
+    ];
+
+    const matches = allMatches.map(m => {
+      const isExpanded = this.state.expandedMatches[m.id] || false;
+      return {
+        ...m,
+        expandedState: isExpanded,
+        expandIcon: isExpanded ? '▼' : '▶',
+      };
+    });
+
+    const hasData = matches.length > 0;
+
+    return {
+      isEmpty: !hasData,
+      matches: matches,
+      filterPlayer: this.state.filterPlayer,
+      selectedDateRange: this.state.selectedDateRange,
+      updateFilter: (field, value) => {
+        this.setState({ [field]: value });
+        console.log('Filter updated:', field, value);
+      },
+      toggleMatch: (id) => {
+        this.setState(s => ({
+          expandedMatches: {
+            ...s.expandedMatches,
+            [id]: !s.expandedMatches[id],
+          },
+        }));
+      },
+    };
+  }
+}
+
+</script>
+</body>
+</html>
