@@ -219,12 +219,11 @@ func (s *Server) handleMembership(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusUnauthorized, "%v", err)
 		return
 	}
-	status, err := s.store.Membership(r.Context(), r.PathValue("code"), actor)
+	status, canManage, err := s.store.MembershipAccess(r.Context(), r.PathValue("code"), actor)
 	if err != nil {
 		writeErr(w, http.StatusNotFound, "membership: %v", err)
 		return
 	}
-	canManage := s.store.CanAdmin(r.Context(), r.PathValue("code"), actor) == nil
 	writeJSON(w, http.StatusOK, map[string]any{"communityId": r.PathValue("code"), "status": status, "canManage": canManage})
 }
 

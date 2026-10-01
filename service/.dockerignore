@@ -1,5 +1,8 @@
 /* dockerignore for the service image */
 .git
+.env
+.env.*
+!.env.example
 *.db
 *.db-wal
 *.db-shm

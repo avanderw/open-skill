@@ -22,7 +22,7 @@ import (
 
 func main() {
 	var (
-		dbPath   = flag.String("db", "open-skill.db", "path to the SQLite database")
+		dbPath   = flag.String("db", "open-skill.db", "path to the SQLite database (ignored when OPEN_SKILL_DB_URL is set)")
 		addr     = flag.String("addr", ":8080", "http listen address")
 		withSeed = flag.Bool("seed", os.Getenv("OPEN_SKILL_SEED") == "1", "load demo content into an empty database")
 	)
@@ -31,7 +31,17 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	st, err := store.Open(*dbPath)
+	var (
+		st     *store.Store
+		err    error
+		dbDesc = *dbPath
+	)
+	if dbURL := os.Getenv("OPEN_SKILL_DB_URL"); dbURL != "" {
+		dbDesc = "remote libsql"
+		st, err = store.OpenRemote(dbURL, os.Getenv("OPEN_SKILL_DB_TOKEN"))
+	} else {
+		st, err = store.Open(*dbPath)
+	}
 	if err != nil {
 		log.Fatalf("open store: %v", err)
 	}
@@ -50,7 +60,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("open-skill service listening on %s (db=%s)", *addr, *dbPath)
+		log.Printf("open-skill service listening on %s (db=%s)", *addr, dbDesc)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("serve: %v", err)
 		}

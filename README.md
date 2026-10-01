@@ -36,6 +36,7 @@ Migration plans and Kanban files remain as implementation history:
 - Development `/api` requests use the Vite proxy; production uses nginx to proxy to the Go service.
 - Set `VITE_API_URL` at build time (see `app/.env.example`) to call a separately hosted service directly; leave it empty for same-origin `/api`. The service must list the app origin in `OPEN_SKILL_ALLOWED_ORIGINS`.
 - SQLite uses the stdlib-compatible `modernc.org/sqlite` driver.
+- Set `OPEN_SKILL_DB_URL` and `OPEN_SKILL_DB_TOKEN` to use a remote Turso (libSQL) database instead of the local `-db` file.
 - Authentication is a demo identity stub; real authentication is not implemented.
 - Rating mode is derived from submitted participants: `1v1`, `team`, or `ffa`.
 - Ratings are scoped by `community_id`, `player_id`, and mode.

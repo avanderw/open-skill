@@ -7,8 +7,10 @@ package store
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 
+	"github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 
@@ -25,12 +27,47 @@ func Open(path string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
+	return open(db)
+}
+
+// OpenRemote opens a remote libSQL database (e.g. Turso, libsql://...) and
+// applies the schema.
+func OpenRemote(url, authToken string) (*Store, error) {
+	connector, err := libsql.NewConnector(url, libsql.WithAuthToken(authToken))
+	if err != nil {
+		return nil, fmt.Errorf("open libsql: %w", err)
+	}
+	return open(sql.OpenDB(foreignKeysConnector{connector}))
+}
+
+func open(db *sql.DB) (*Store, error) {
 	db.SetMaxOpenConns(1) // single writer for sqlite
 	if err := applySchema(db); err != nil {
 		db.Close()
 		return nil, err
 	}
 	return &Store{db: db}, nil
+}
+
+// foreignKeysConnector enables foreign keys on each connection, since libSQL
+// URLs cannot carry pragmas.
+type foreignKeysConnector struct{ driver.Connector }
+
+func (c foreignKeysConnector) Connect(ctx context.Context) (driver.Conn, error) {
+	conn, err := c.Connector.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	execer, ok := conn.(driver.ExecerContext)
+	if !ok {
+		conn.Close()
+		return nil, fmt.Errorf("libsql connection does not support exec")
+	}
+	if _, err := execer.ExecContext(ctx, "PRAGMA foreign_keys = ON", nil); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	}
+	return conn, nil
 }
 
 // Close releases the underlying database.

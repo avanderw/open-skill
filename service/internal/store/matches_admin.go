@@ -103,12 +103,12 @@ func (s *Store) UpdateMatch(ctx context.Context, actorID, matchID string, partic
 	if _, err := tx.ExecContext(ctx, `DELETE FROM match_participants WHERE match_id = ?`, matchID); err != nil {
 		return nil, fmt.Errorf("clear match participants: %w", err)
 	}
-	for _, p := range participants {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO match_participants (match_id, player_id, team, score, finish, rating_delta)
-			VALUES (?, ?, ?, ?, ?, 0)`, matchID, p.PlayerID, p.Team, p.Score, nullableFinish(p)); err != nil {
-			return nil, fmt.Errorf("insert match participant: %w", err)
-		}
+	rows := make([]participantRow, len(participants))
+	for i, p := range participants {
+		rows[i] = participantRow{matchID: matchID, p: p}
+	}
+	if err := writeParticipants(ctx, tx, rows); err != nil {
+		return nil, err
 	}
 	if err := recomputeCommunity(ctx, tx, communityID); err != nil {
 		return nil, err
@@ -156,7 +156,8 @@ func requireCommunityAdmin(ctx context.Context, tx *sql.Tx, communityID, actorID
 
 // recomputeCommunity replays every match in the community in chronological
 // order. Ratings are a projection of the match log, so edits and deletions are
-// applied by rebuilding rather than by trying to invert a single result.
+// applied by rebuilding rather than by trying to invert a single result. The
+// log is loaded and rated in memory so the cost does not grow with match count.
 func recomputeCommunity(ctx context.Context, tx *sql.Tx, communityID string) error {
 	defaults := rating.NewOpenSkillPlayer("")
 	if _, err := tx.ExecContext(ctx, `
@@ -166,62 +167,57 @@ func recomputeCommunity(ctx context.Context, tx *sql.Tx, communityID string) err
 	}
 
 	rows, err := tx.QueryContext(ctx, `
-		SELECT id, mode, played_at FROM matches WHERE community_id = ? ORDER BY played_at, id`, communityID)
+		SELECT m.id, m.mode, m.played_at, mp.player_id, COALESCE(mp.team, ''), mp.score, COALESCE(mp.finish, -1)
+		FROM matches m
+		JOIN match_participants mp ON mp.match_id = m.id
+		WHERE m.community_id = ?
+		ORDER BY m.played_at, m.id, mp.player_id`, communityID)
 	if err != nil {
-		return fmt.Errorf("list community matches: %w", err)
+		return fmt.Errorf("load community match log: %w", err)
 	}
 	type replayMatch struct {
-		id       string
-		mode     model.Mode
-		playedAt string
+		id           string
+		mode         model.Mode
+		playedAt     string
+		participants []Participant
 	}
-	var replays []replayMatch
+	var replays []*replayMatch
 	for rows.Next() {
-		var m replayMatch
-		if err := rows.Scan(&m.id, &m.mode, &m.playedAt); err != nil {
+		var id, playedAt string
+		var mode model.Mode
+		var p Participant
+		if err := rows.Scan(&id, &mode, &playedAt, &p.PlayerID, &p.Team, &p.Score, &p.Finish); err != nil {
 			rows.Close()
 			return err
 		}
-		replays = append(replays, m)
+		if len(replays) == 0 || replays[len(replays)-1].id != id {
+			replays = append(replays, &replayMatch{id: id, mode: mode, playedAt: playedAt})
+		}
+		last := replays[len(replays)-1]
+		last.participants = append(last.participants, p)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return err
 	}
 
+	book := ratingBook{}
+	var participantRows []participantRow
 	for _, replay := range replays {
-		participants, err := matchParticipants(ctx, tx, replay.id)
-		if err != nil {
-			return err
-		}
-		_, normalized, err := normalizeReport(participants)
+		_, normalized, err := normalizeReport(replay.participants)
 		if err != nil {
 			return fmt.Errorf("replay match %s: %w", replay.id, err)
 		}
-		if _, err := applyMatchRatings(ctx, tx, communityID, replay.id, replay.mode, participants, normalized, replay.playedAt); err != nil {
+		matchRows, _, err := book.rateMatch(replay.id, replay.mode, replay.participants, normalized, replay.playedAt)
+		if err != nil {
 			return fmt.Errorf("replay match %s: %w", replay.id, err)
 		}
+		participantRows = append(participantRows, matchRows...)
 	}
-	return nil
-}
-
-func matchParticipants(ctx context.Context, tx *sql.Tx, matchID string) ([]Participant, error) {
-	rows, err := tx.QueryContext(ctx, `
-		SELECT player_id, COALESCE(team, ''), score, COALESCE(finish, -1)
-		FROM match_participants WHERE match_id = ? ORDER BY player_id`, matchID)
-	if err != nil {
-		return nil, fmt.Errorf("load match participants: %w", err)
+	if err := writeParticipants(ctx, tx, participantRows); err != nil {
+		return err
 	}
-	defer rows.Close()
-	out := []Participant{}
-	for rows.Next() {
-		var p Participant
-		if err := rows.Scan(&p.PlayerID, &p.Team, &p.Score, &p.Finish); err != nil {
-			return nil, err
-		}
-		out = append(out, p)
-	}
-	return out, rows.Err()
+	return writeRatings(ctx, tx, communityID, book)
 }
 
 func matchDeltas(ctx context.Context, tx *sql.Tx, communityID, matchID string, mode model.Mode) ([]model.RatingDelta, error) {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"open-skill/service/internal/model"
 	"open-skill/service/internal/rating"
@@ -30,12 +31,6 @@ type ReportMatchRequest struct {
 	Participants []Participant `json:"participants"`
 	Notes        string        `json:"notes"`
 	PlayedAt     string        `json:"playedAt,omitempty"` // RFC3339; default now
-}
-
-// contestant is a participant plus its current rating for recomputation.
-type contestant struct {
-	req       Participant
-	mu, sigma float64
 }
 
 // Participant is one competitor in a reported match.
@@ -73,26 +68,18 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 	}
 	defer tx.Rollback()
 
-	var drawsAllowed bool
-	if err := tx.QueryRowContext(ctx, `SELECT draws FROM communities WHERE id = ?`, req.CommunityID).Scan(&drawsAllowed); err != nil {
+	var drawsAllowed, isMember bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT c.draws,
+		       c.owner_id = ? OR EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = c.id AND cm.user_id = ?)
+		FROM communities c WHERE c.id = ?`, actorID, actorID, req.CommunityID).Scan(&drawsAllowed, &isMember); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("community %q: %w", req.CommunityID, ErrNotFound)
 		}
 		return nil, fmt.Errorf("load community %q: %w", req.CommunityID, err)
 	}
-	if actorID != "" {
-		var isMember bool
-		if err := tx.QueryRowContext(ctx, `
-			SELECT EXISTS(
-				SELECT 1 FROM communities c WHERE c.id = ? AND c.owner_id = ?
-				UNION ALL
-				SELECT 1 FROM community_members cm WHERE cm.community_id = ? AND cm.user_id = ?
-			)`, req.CommunityID, actorID, req.CommunityID, actorID).Scan(&isMember); err != nil {
-			return nil, fmt.Errorf("check match reporter membership: %w", err)
-		}
-		if !isMember {
-			return nil, ErrForbidden
-		}
+	if actorID != "" && !isMember {
+		return nil, ErrForbidden
 	}
 	if err := validateCommunityParticipants(ctx, tx, req.CommunityID, req.Participants); err != nil {
 		return nil, err
@@ -102,21 +89,28 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 	}
 
 	matchID := newID("m")
-	var playedAt string
-	if req.PlayedAt != "" {
-		playedAt = req.PlayedAt
-	} else {
-		if err := tx.QueryRowContext(ctx, `SELECT datetime('now')`).Scan(&playedAt); err != nil {
-			return nil, err
-		}
+	playedAt := req.PlayedAt
+	if playedAt == "" {
+		// Same format as SQLite's datetime('now').
+		playedAt = time.Now().UTC().Format("2006-01-02 15:04:05")
 	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO matches (id, community_id, mode, played_at, notes)
 		VALUES (?, ?, ?, ?, ?)`, matchID, req.CommunityID, string(mode), playedAt, req.Notes); err != nil {
 		return nil, fmt.Errorf("insert match: %w", err)
 	}
-	deltas, err := applyMatchRatings(ctx, tx, req.CommunityID, matchID, mode, req.Participants, normalized, playedAt)
+	book, err := loadRatings(ctx, tx, req.CommunityID, mode, req.Participants)
 	if err != nil {
+		return nil, err
+	}
+	rows, deltas, err := book.rateMatch(matchID, mode, req.Participants, normalized, playedAt)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeParticipants(ctx, tx, rows); err != nil {
+		return nil, err
+	}
+	if err := writeRatings(ctx, tx, req.CommunityID, book); err != nil {
 		return nil, err
 	}
 
@@ -126,81 +120,173 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 	return &ReportOutcome{MatchID: matchID, Mode: mode, Deltas: deltas}, nil
 }
 
-// applyMatchRatings writes the match participants and folds the result into the
-// materialized ratings. It is shared by reporting and by full recomputation.
-func applyMatchRatings(ctx context.Context, tx *sql.Tx, communityID, matchID string, mode model.Mode, participants []Participant, normalized rating.NormalizedMatch, playedAt string) ([]model.RatingDelta, error) {
-	// Load current ratings for each participant in this mode.
-	var contestants []contestant
+type ratingKey struct {
+	playerID string
+	mode     model.Mode
+}
+
+type ratingState struct {
+	mu, sigma                  float64
+	games, wins, losses, draws int
+	lastPlayed                 sql.NullString
+}
+
+// ratingBook holds ratings in memory so matches (or a full replay) are rated
+// without a database round trip per participant.
+type ratingBook map[ratingKey]*ratingState
+
+func (b ratingBook) get(playerID string, mode model.Mode) *ratingState {
+	key := ratingKey{playerID: playerID, mode: mode}
+	if state, ok := b[key]; ok {
+		return state
+	}
+	defaults := rating.NewOpenSkillPlayer(playerID)
+	state := &ratingState{mu: defaults.Mu, sigma: defaults.Sigma}
+	b[key] = state
+	return state
+}
+
+// participantRow is a match_participants row to be written.
+type participantRow struct {
+	matchID string
+	p       Participant
+	delta   float64
+}
+
+func loadRatings(ctx context.Context, tx *sql.Tx, communityID string, mode model.Mode, participants []Participant) (ratingBook, error) {
+	args := []any{communityID, string(mode)}
 	for _, p := range participants {
-		var mu, sigma float64
-		if err := tx.QueryRowContext(ctx, `
-			SELECT mu, sigma FROM ratings WHERE community_id = ? AND player_id = ? AND mode = ?`,
-			communityID, p.PlayerID, string(mode)).Scan(&mu, &sigma); err != nil {
-			// New player: default rating.
-			defaultPlayer := rating.NewOpenSkillPlayer(p.PlayerID)
-			mu, sigma = defaultPlayer.Mu, defaultPlayer.Sigma
+		args = append(args, p.PlayerID)
+	}
+	rows, err := tx.QueryContext(ctx, `
+		SELECT player_id, mu, sigma, games, wins, losses, draws, last_played
+		FROM ratings WHERE community_id = ? AND mode = ? AND player_id IN (`+placeholders(len(participants))+`)`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("load ratings: %w", err)
+	}
+	defer rows.Close()
+	book := ratingBook{}
+	for rows.Next() {
+		var playerID string
+		var state ratingState
+		if err := rows.Scan(&playerID, &state.mu, &state.sigma, &state.games, &state.wins, &state.losses, &state.draws, &state.lastPlayed); err != nil {
+			return nil, err
 		}
-		contestants = append(contestants, contestant{req: p, mu: mu, sigma: sigma})
+		book[ratingKey{playerID: playerID, mode: mode}] = &state
+	}
+	return book, rows.Err()
+}
+
+// rateMatch applies one match to the in-memory ratings and returns the
+// participant rows to persist. It is shared by reporting and full recomputation.
+func (b ratingBook) rateMatch(matchID string, mode model.Mode, participants []Participant, normalized rating.NormalizedMatch, playedAt string) ([]participantRow, []model.RatingDelta, error) {
+	states := make(map[string]*ratingState, len(participants))
+	for _, p := range participants {
+		states[p.PlayerID] = b.get(p.PlayerID, mode)
 	}
 
 	teams := make([]rating.OpenSkillTeam, len(normalized.Teams))
 	for i, team := range normalized.Teams {
 		for _, playerID := range team {
-			for _, contestant := range contestants {
-				if contestant.req.PlayerID == playerID {
-					teams[i].Players = append(teams[i].Players, rating.OpenSkillPlayer{ID: playerID, Mu: contestant.mu, Sigma: contestant.sigma})
-					break
-				}
+			if state, ok := states[playerID]; ok {
+				teams[i].Players = append(teams[i].Players, rating.OpenSkillPlayer{ID: playerID, Mu: state.mu, Sigma: state.sigma})
 			}
 		}
 	}
 	updatedTeams, err := rating.RateOpenSkill(teams, normalized.Ranks)
 	if err != nil {
-		return nil, fmt.Errorf("rate match: %w", err)
+		return nil, nil, fmt.Errorf("rate match: %w", err)
 	}
-	updates := make(map[string]rating.OpenSkillPlayer, len(contestants))
+	updates := make(map[string]rating.OpenSkillPlayer, len(participants))
 	for _, team := range updatedTeams {
 		for _, player := range team.Players {
 			updates[player.ID] = player
 		}
 	}
 
-	deltas := make([]model.RatingDelta, 0, len(contestants))
-	for _, c := range contestants {
-		up := updates[c.req.PlayerID]
-		previousOrdinal := rating.OpenSkillOrdinal(c.mu, c.sigma)
-		newOrdinal := rating.OpenSkillOrdinal(up.Mu, up.Sigma)
-		delta := (newOrdinal - previousOrdinal) * 60
-		stats := normalized.Results[c.req.PlayerID]
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO match_participants (match_id, player_id, team, score, finish, rating_delta)
-			VALUES (?, ?, ?, ?, ?, ?)
-			ON CONFLICT(match_id, player_id) DO UPDATE SET
-				team = excluded.team, score = excluded.score,
-				finish = excluded.finish, rating_delta = excluded.rating_delta`,
-			matchID, c.req.PlayerID, c.req.Team, c.req.Score, nullableFinish(c.req), delta); err != nil {
-			return nil, err
-		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO ratings (community_id, player_id, mode, mu, sigma, games, wins, losses, draws, last_played)
-			VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
-			ON CONFLICT(community_id, player_id, mode) DO UPDATE SET
-				mu = excluded.mu, sigma = excluded.sigma,
-				games = ratings.games + 1,
-				wins = ratings.wins + ?, losses = ratings.losses + ?, draws = ratings.draws + ?,
-				last_played = excluded.last_played`,
-			communityID, c.req.PlayerID, string(mode), up.Mu, up.Sigma,
-			stats.Wins, stats.Losses, stats.Draws, playedAt, stats.Wins, stats.Losses, stats.Draws); err != nil {
-			return nil, err
-		}
+	rows := make([]participantRow, 0, len(participants))
+	deltas := make([]model.RatingDelta, 0, len(participants))
+	for _, p := range participants {
+		state := states[p.PlayerID]
+		up := updates[p.PlayerID]
+		delta := (rating.OpenSkillOrdinal(up.Mu, up.Sigma) - rating.OpenSkillOrdinal(state.mu, state.sigma)) * 60
+		stats := normalized.Results[p.PlayerID]
+		state.mu, state.sigma = up.Mu, up.Sigma
+		state.games++
+		state.wins += stats.Wins
+		state.losses += stats.Losses
+		state.draws += stats.Draws
+		state.lastPlayed = sql.NullString{String: playedAt, Valid: true}
+		rows = append(rows, participantRow{matchID: matchID, p: p, delta: delta})
 		deltas = append(deltas, model.RatingDelta{
-			PlayerID:  c.req.PlayerID,
+			PlayerID:  p.PlayerID,
 			Mode:      mode,
 			Delta:     delta,
 			NewRating: rating.OpenSkillDisplayRating(up.Mu, up.Sigma),
 		})
 	}
-	return deltas, nil
+	return rows, deltas, nil
+}
+
+// maxRowsPerStatement keeps multi-row statements well under SQLite's bound
+// parameter limit and remote request size limits.
+const maxRowsPerStatement = 200
+
+// execValues runs prefix + "(?,...),(?,...)" + suffix in chunks of rows.
+func execValues(ctx context.Context, tx *sql.Tx, prefix, suffix string, width int, rows [][]any) error {
+	for start := 0; start < len(rows); start += maxRowsPerStatement {
+		chunk := rows[start:min(start+maxRowsPerStatement, len(rows))]
+		var sb strings.Builder
+		sb.WriteString(prefix)
+		args := make([]any, 0, len(chunk)*width)
+		for i, row := range chunk {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString("(" + placeholders(width) + ")")
+			args = append(args, row...)
+		}
+		sb.WriteString(suffix)
+		if _, err := tx.ExecContext(ctx, sb.String(), args...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func placeholders(n int) string {
+	return strings.TrimRight(strings.Repeat("?,", n), ",")
+}
+
+func writeParticipants(ctx context.Context, tx *sql.Tx, rows []participantRow) error {
+	values := make([][]any, len(rows))
+	for i, r := range rows {
+		values[i] = []any{r.matchID, r.p.PlayerID, r.p.Team, r.p.Score, nullableFinish(r.p), r.delta}
+	}
+	if err := execValues(ctx, tx, `
+		INSERT INTO match_participants (match_id, player_id, team, score, finish, rating_delta) VALUES `, `
+		ON CONFLICT(match_id, player_id) DO UPDATE SET
+			team = excluded.team, score = excluded.score,
+			finish = excluded.finish, rating_delta = excluded.rating_delta`, 6, values); err != nil {
+		return fmt.Errorf("write match participants: %w", err)
+	}
+	return nil
+}
+
+func writeRatings(ctx context.Context, tx *sql.Tx, communityID string, book ratingBook) error {
+	values := make([][]any, 0, len(book))
+	for key, s := range book {
+		values = append(values, []any{communityID, key.playerID, string(key.mode), s.mu, s.sigma, s.games, s.wins, s.losses, s.draws, s.lastPlayed})
+	}
+	if err := execValues(ctx, tx, `
+		INSERT INTO ratings (community_id, player_id, mode, mu, sigma, games, wins, losses, draws, last_played) VALUES `, `
+		ON CONFLICT(community_id, player_id, mode) DO UPDATE SET
+			mu = excluded.mu, sigma = excluded.sigma, games = excluded.games,
+			wins = excluded.wins, losses = excluded.losses, draws = excluded.draws,
+			last_played = excluded.last_played`, 10, values); err != nil {
+		return fmt.Errorf("write ratings: %w", err)
+	}
+	return nil
 }
 
 func validateCommunityParticipants(ctx context.Context, tx *sql.Tx, communityID string, participants []Participant) error {

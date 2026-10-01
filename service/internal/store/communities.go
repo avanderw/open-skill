@@ -89,24 +89,36 @@ func (s *Store) BrowseCommunities(ctx context.Context, userID string) ([]model.C
 }
 
 func (s *Store) Membership(ctx context.Context, communityID, userID string) (string, error) {
+	status, _, err := s.MembershipAccess(ctx, communityID, userID)
+	return status, err
+}
+
+// MembershipAccess returns the user's membership status and whether they may
+// manage the community, in one round trip.
+func (s *Store) MembershipAccess(ctx context.Context, communityID, userID string) (status string, canManage bool, err error) {
 	var owner string
-	if err := s.db.QueryRowContext(ctx, `SELECT owner_id FROM communities WHERE id = ?`, communityID).Scan(&owner); err != nil {
+	var role, request sql.NullString
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT c.owner_id, cm.role,
+		       (SELECT jr.status FROM community_join_requests jr WHERE jr.community_id = c.id AND jr.user_id = ?)
+		FROM communities c
+		LEFT JOIN community_members cm ON cm.community_id = c.id AND cm.user_id = ?
+		WHERE c.id = ?`, userID, userID, communityID).Scan(&owner, &role, &request); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrNotFound
+			return "", false, ErrNotFound
 		}
-		return "", err
+		return "", false, err
 	}
-	if owner == userID {
-		return "owner", nil
+	switch {
+	case owner == userID:
+		return "owner", true, nil
+	case role.Valid:
+		return "member", role.String == "owner" || role.String == "admin", nil
+	case request.Valid:
+		return request.String, false, nil
+	default:
+		return "non_member", false, nil
 	}
-	var status string
-	if err := s.db.QueryRowContext(ctx, `SELECT 'member' FROM community_members WHERE community_id = ? AND user_id = ? UNION ALL SELECT status FROM community_join_requests WHERE community_id = ? AND user_id = ? LIMIT 1`, communityID, userID, communityID, userID).Scan(&status); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "non_member", nil
-		}
-		return "", err
-	}
-	return status, nil
 }
 
 // CreateCommunity inserts a community, its join code, and the owner membership
@@ -243,24 +255,31 @@ func acceptCommunityMemberTx(ctx context.Context, tx *sql.Tx, communityID, userI
 var ErrForbidden = errors.New("forbidden")
 
 func (s *Store) CommunityRole(ctx context.Context, communityID, userID string) (string, error) {
-	var owner string
-	if err := s.db.QueryRowContext(ctx, `SELECT owner_id FROM communities WHERE id = ?`, communityID).Scan(&owner); err != nil {
+	role, _, err := s.communityRoleAndOwner(ctx, communityID, userID)
+	return role, err
+}
+
+// communityRoleAndOwner resolves the user's role and the community owner in one
+// round trip. Non-members get ErrNotFound.
+func (s *Store) communityRoleAndOwner(ctx context.Context, communityID, userID string) (role, owner string, err error) {
+	var memberRole sql.NullString
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT c.owner_id, cm.role
+		FROM communities c
+		LEFT JOIN community_members cm ON cm.community_id = c.id AND cm.user_id = ?
+		WHERE c.id = ?`, userID, communityID).Scan(&owner, &memberRole); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrNotFound
+			return "", "", ErrNotFound
 		}
-		return "", err
+		return "", "", err
 	}
 	if owner == userID {
-		return "owner", nil
+		return "owner", owner, nil
 	}
-	var role string
-	if err := s.db.QueryRowContext(ctx, `SELECT role FROM community_members WHERE community_id = ? AND user_id = ?`, communityID, userID).Scan(&role); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrNotFound
-		}
-		return "", err
+	if !memberRole.Valid {
+		return "", owner, ErrNotFound
 	}
-	return role, nil
+	return memberRole.String, owner, nil
 }
 
 func (s *Store) CanAdmin(ctx context.Context, communityID, userID string) error {
@@ -278,16 +297,12 @@ func (s *Store) SetMemberRole(ctx context.Context, communityID, actorID, targetI
 	if role != "admin" && role != "member" {
 		return fmt.Errorf("invalid role")
 	}
-	actor, err := s.CommunityRole(ctx, communityID, actorID)
+	actor, owner, err := s.communityRoleAndOwner(ctx, communityID, actorID)
 	if err != nil {
 		return err
 	}
 	if actor != "owner" {
 		return ErrForbidden
-	}
-	var owner string
-	if err := s.db.QueryRowContext(ctx, `SELECT owner_id FROM communities WHERE id = ?`, communityID).Scan(&owner); err != nil {
-		return err
 	}
 	if targetID == owner {
 		return fmt.Errorf("owner cannot be changed")
@@ -307,38 +322,41 @@ func (s *Store) SetMemberRole(ctx context.Context, communityID, actorID, targetI
 }
 
 func (s *Store) RemoveMember(ctx context.Context, communityID, actorID, targetID string) error {
-	actor, err := s.CommunityRole(ctx, communityID, actorID)
-	if err != nil {
+	var owner string
+	var actorRole, targetRole sql.NullString
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT c.owner_id, a.role, t.role
+		FROM communities c
+		LEFT JOIN community_members a ON a.community_id = c.id AND a.user_id = ?
+		LEFT JOIN community_members t ON t.community_id = c.id AND t.user_id = ?
+		WHERE c.id = ?`, actorID, targetID, communityID).Scan(&owner, &actorRole, &targetRole); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
 		return err
+	}
+	actor := actorRole.String
+	if owner == actorID {
+		actor = "owner"
+	} else if !actorRole.Valid {
+		return ErrNotFound
 	}
 	if actor != "owner" && actor != "admin" {
 		return ErrForbidden
-	}
-	var owner string
-	if err := s.db.QueryRowContext(ctx, `SELECT owner_id FROM communities WHERE id = ?`, communityID).Scan(&owner); err != nil {
-		return err
 	}
 	if targetID == owner {
 		return fmt.Errorf("owner cannot be removed")
 	}
 	if actor == "admin" {
-		var role string
-		if err := s.db.QueryRowContext(ctx, `SELECT role FROM community_members WHERE community_id = ? AND user_id = ?`, communityID, targetID).Scan(&role); err != nil {
-			return err
+		if !targetRole.Valid {
+			return ErrNotFound
 		}
-		if role == "admin" {
+		if targetRole.String == "admin" {
 			return ErrForbidden
 		}
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `DELETE FROM community_members WHERE community_id = ? AND user_id = ?`, communityID, targetID); err != nil {
-		return err
-	}
-	return tx.Commit()
+	_, err := s.db.ExecContext(ctx, `DELETE FROM community_members WHERE community_id = ? AND user_id = ?`, communityID, targetID)
+	return err
 }
 
 func (s *Store) ApproveJoinRequest(ctx context.Context, communityID, userID string) error {

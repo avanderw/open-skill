@@ -31,6 +31,7 @@
 - Separately hosted app builds set `VITE_API_URL` to the service origin and call it cross-origin.
 - The Go module path is `open-skill/service`.
 - SQLite uses `modernc.org/sqlite` without cgo.
+- Setting `OPEN_SKILL_DB_URL` (e.g. `libsql://...turso.io`) with `OPEN_SKILL_DB_TOKEN` switches the store to a remote libSQL/Turso database via `libsql-client-go` (also cgo-free); otherwise the `-db` file is used.
 - Invite codes use the documented human-readable code generator in the API.
 - Authentication is a demo identity stub. Allowed CORS origins are configured with `OPEN_SKILL_ALLOWED_ORIGINS`.
 

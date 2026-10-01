@@ -46,16 +46,22 @@ Each task is independently testable; complete in order where dependencies are no
 
 ## 4. Turso database support (service)
 
-- [ ] Add `github.com/tursodatabase/libsql-client-go`
-- [ ] In `store.Open`: if `OPEN_SKILL_DB_URL` starts with `libsql://`, open with driver `libsql` + `OPEN_SKILL_DB_TOKEN`; otherwise keep local `modernc` SQLite file (drop WAL pragma for remote)
-- [ ] Ensure schema migration runs against Turso
-- [ ] Ensure `foreign_keys` is enforced on remote connection
-- [ ] Review hot paths for N+1 queries (each query is now a network round-trip)
+- [x] Add `github.com/tursodatabase/libsql-client-go`
+- [x] `store.OpenRemote` used when `OPEN_SKILL_DB_URL` is set (token from `OPEN_SKILL_DB_TOKEN`); otherwise local `modernc` SQLite file via `-db`
+- [x] Ensure schema migration runs against Turso (applied on startup; verified against `open-skill` DB)
+- [x] Enable `foreign_keys` on each remote connection (verify with gated test below)
+- [x] Review hot paths for N+1 queries (each query is now a network round-trip)
+  - Match replay (edit/delete) batched: ~310 → 10–13 round trips for 30 matches, constant in match count
+  - Report match: 19 → 8; membership/role checks: 2–7 → 1–2
+  - Budgets enforced by `TestRoundTripBudgets` (`internal/store/roundtrips_test.go`)
+  - Per-request `EnsureDemoIdentity` left for task 6 (replaced by Firebase sign-in)
 
 **Test**
-- `go test ./...` still passes against local SQLite
-- `turso db create open-skill-dev`, set env vars, run service with `-seed` → leaderboard/communities work, data persists across service restarts
-- Verify via `turso db shell open-skill-dev "select count(*) from players"`
+- `go test ./...` still passes against local SQLite (remote test skips)
+- Copy `service/.env.example` to `service/.env` (git-ignored), paste the dev token, then from `service/`:
+  - `./with-env.ps1 go test ./internal/store -run Remote -v` → passes (FKs enforced)
+  - `./with-env.ps1 go run ./cmd/open-skill-service -seed` → app works against it; restart without `-seed` → data persists
+- Verify in the Turso dashboard SQL console: `select count(*) from players`
 
 ---
 
@@ -64,7 +70,7 @@ Each task is independently testable; complete in order where dependencies are no
 - [ ] Confirm `service/Dockerfile` builds a small static image and listens on `$PORT` (default 8080)
 - [ ] Create GCP project, enable billing + **budget alert**
 - [ ] Store `OPEN_SKILL_DB_TOKEN` in Secret Manager
-- [ ] Deploy: `gcloud run deploy open-skill-service --source service --region us-central1 --allow-unauthenticated --set-env-vars OPEN_SKILL_DB_URL=...,OPEN_SKILL_ALLOWED_ORIGINS=https://<user>.github.io --set-secrets OPEN_SKILL_DB_TOKEN=...`
+- [ ] Deploy: `gcloud run deploy open-skill-service --source service --region europe-west1 --allow-unauthenticated --set-env-vars OPEN_SKILL_DB_URL=...,OPEN_SKILL_ALLOWED_ORIGINS=https://<user>.github.io --set-secrets OPEN_SKILL_DB_TOKEN=...`
 - [ ] Optional: `.github/workflows/deploy-service.yml` using Workload Identity Federation
 
 **Test**
