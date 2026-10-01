@@ -34,6 +34,7 @@ Migration plans and Kanban files remain as implementation history:
 ## Current Technical Decisions
 
 - Development `/api` requests use the Vite proxy; production uses nginx to proxy to the Go service.
+- Set `VITE_API_URL` at build time (see `app/.env.example`) to call a separately hosted service directly; leave it empty for same-origin `/api`. The service must list the app origin in `OPEN_SKILL_ALLOWED_ORIGINS`.
 - SQLite uses the stdlib-compatible `modernc.org/sqlite` driver.
 - Authentication is a demo identity stub; real authentication is not implemented.
 - Rating mode is derived from submitted participants: `1v1`, `team`, or `ffa`.

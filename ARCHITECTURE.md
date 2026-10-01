@@ -14,6 +14,7 @@
 
 - `app` speaks **SvelteKit**; build static via adapter-static (`prerender=false`).
 - `app` calls `service` at **`/api/**`** — in dev, SvelteKit `server.proxy` (vite.config.ts) proxies `/api` → `localhost:8080`; in prod, nginx serves `app/build` and reverse-proxies `/api` → `service:8080`.
+- `VITE_API_URL` (build-time, see `app/.env.example`) sets the service origin prefixed to `/api/**`. Empty (default) keeps requests same-origin; set it when the app and service are hosted separately (e.g. static host + Cloud Run), and add the app origin to `OPEN_SKILL_ALLOWED_ORIGINS`.
 
 ## Service
 
@@ -27,6 +28,7 @@
 
 - Development `/api` requests use the Vite proxy to `localhost:8080`.
 - Production nginx serves `app/build` and proxies `/api` to `service:8080`.
+- Separately hosted app builds set `VITE_API_URL` to the service origin and call it cross-origin.
 - The Go module path is `open-skill/service`.
 - SQLite uses `modernc.org/sqlite` without cgo.
 - Invite codes use the documented human-readable code generator in the API.

@@ -109,14 +109,18 @@ export function demoRequestHeaders(): HeadersInit {
 	return { 'X-Demo-User': selectedDebugProfile().id };
 }
 
-function createRequest(fetcher: typeof globalThis.fetch) {
+// Empty base keeps requests same-origin (Vite proxy in dev, nginx in Docker).
+const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
+
+function createRequest(fetcher: typeof globalThis.fetch, baseUrl: string) {
+	const base = baseUrl.replace(/\/+$/, '');
 	return async function req<T>(path: string, init?: RequestInit): Promise<T> {
 		const headers: Record<string, string> = { ...demoRequestHeaders() as Record<string, string> };
 		if (init?.headers instanceof Headers) init.headers.forEach((value, key) => { headers[key] = value; });
 		else if (Array.isArray(init?.headers)) init.headers.forEach(([key, value]) => { headers[key] = value; });
 		else Object.assign(headers, init?.headers ?? {});
 		if (init?.body !== undefined && !('Content-Type' in headers)) headers['Content-Type'] = 'application/json';
-		const res = await fetcher(path, {
+		const res = await fetcher(base + path, {
 			...init,
 			headers
 		});
@@ -134,8 +138,8 @@ function createRequest(fetcher: typeof globalThis.fetch) {
 	};
 }
 
-export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch) {
-	const req = createRequest(fetcher);
+export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, baseUrl: string = API_BASE_URL) {
+	const req = createRequest(fetcher, baseUrl);
 	return {
 		health: () => req<{ ok: boolean }>('/api/health'),
 		me: () => req<DemoUser>('/api/me'),

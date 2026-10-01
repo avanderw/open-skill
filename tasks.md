@@ -7,9 +7,9 @@ Each task is independently testable; complete in order where dependencies are no
 
 ## 1. Configurable API base URL (app)
 
-- [ ] Add `VITE_API_URL` (default empty → relative `/api` for dev proxy)
-- [ ] Prefix request paths in `req()` in `app/src/lib/api.ts`
-- [ ] Add `app/.env.example` documenting `VITE_API_URL`
+- [x] Add `VITE_API_URL` (default empty → relative `/api` for dev proxy)
+- [x] Prefix request paths in `req()` in `app/src/lib/api.ts`
+- [x] Add `app/.env.example` documenting `VITE_API_URL`
 
 **Test**
 - `npm run dev` with no env → requests still go through Vite proxy to `localhost:8080`

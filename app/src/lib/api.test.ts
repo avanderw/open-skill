@@ -88,6 +88,15 @@ describe('API client contract', () => {
 		expect(init?.method).toBe('POST');
 	});
 
+	it('prefixes requests with a configured API base URL', async () => {
+		installLocalStorage();
+		const fetcher = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () => response({ ok: true }));
+
+		await createApi(fetcher, 'https://api.example.test/').health();
+
+		expect(fetcher.mock.calls[0]![0]).toBe('https://api.example.test/api/health');
+	});
+
 	it('falls back to non-JSON error text', async () => {
 		installLocalStorage();
 		const fetcher = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () => response('upstream unavailable', { status: 502 }));
