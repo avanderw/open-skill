@@ -31,6 +31,21 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	authConfig := api.AuthConfig{Demo: os.Getenv("OPEN_SKILL_DEMO_AUTH") == "1"}
+	if projectID := os.Getenv("OPEN_SKILL_FIREBASE_PROJECT_ID"); projectID != "" {
+		verifier, err := api.NewFirebaseVerifier(ctx, projectID)
+		if err != nil {
+			log.Fatalf("firebase auth: %v", err)
+		}
+		authConfig.Verifier = verifier
+	}
+	if authConfig.Verifier == nil && !authConfig.Demo {
+		log.Fatal("no auth configured: set OPEN_SKILL_FIREBASE_PROJECT_ID, or OPEN_SKILL_DEMO_AUTH=1 for local development")
+	}
+	if authConfig.Demo {
+		log.Print("WARNING: demo auth enabled; X-Demo-User is trusted. Never enable this in production.")
+	}
+
 	var (
 		st     *store.Store
 		err    error
@@ -56,7 +71,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    *addr,
-		Handler: api.New(st).Handler(),
+		Handler: api.New(st, authConfig).Handler(),
 	}
 
 	go func() {

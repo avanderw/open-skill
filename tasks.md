@@ -88,38 +88,41 @@ Providers: Google (built in), GitHub (built in). Discord is not a built-in Fireb
 - [ ] Add Firebase to the existing GCP project (same project as Cloud Run)
 - [ ] Authentication → enable Google and GitHub providers (GitHub needs an OAuth App client id/secret)
 - [ ] Authorized domains: add `<user>.github.io` (and custom domain if used); `localhost` for dev
-- [ ] Register a Web app; record `apiKey`, `authDomain`, `projectId`, `appId` (public config, not secrets)
+- [x] Register a Web app; record `apiKey`, `authDomain`, `projectId`, `appId` (public config, not secrets) — project `open-skill-25b83`
 
 **Test**
 - Firebase console shows providers enabled and authorized domains listed
 
 ### 6b. App sign-in
-- [ ] Add `firebase` npm package; init from `VITE_FIREBASE_*` env vars
-- [ ] Replace demo login in `app/src/lib/auth.ts` with `signInWithPopup` (Google/GitHub) and `signOut`
-- [ ] Drive auth state from `onAuthStateChanged` instead of `localStorage` flag; keep protected-route redirects
-- [ ] In `req()`, send `Authorization: Bearer ${await auth.currentUser.getIdToken()}` (SDK auto-refreshes)
-- [ ] Debug profiles / `X-Demo-User` only when `import.meta.env.DEV` (never in prod builds)
-- [ ] Add `VITE_FIREBASE_*` to `app/.env.example` and the Pages deploy workflow
+- [x] Add `firebase` npm package; init from `VITE_FIREBASE_*` env vars (local values in git-ignored `app/.env`)
+- [x] Replace demo login in `app/src/lib/auth.ts` with `signInWithPopup` (Google/GitHub) and `signOut`
+- [x] Drive auth state from Firebase (`authStateReady` + `onAuthStateChanged` → `auth-change` event); keep protected-route redirects
+- [x] In `req()`, send `Authorization: Bearer <id token>` (SDK auto-refreshes)
+- [x] Debug profiles / `X-Demo-User` only when `import.meta.env.DEV && VITE_DEMO_AUTH=1` (verified absent from prod build); tests use `app/.env.test`
+- [x] Add `VITE_FIREBASE_*` to `app/.env.example`
+- [ ] Add `VITE_FIREBASE_*` to the Pages deploy workflow (task 3, as repo variables)
+- [ ] Optional: restrict the browser API key to HTTP referrers (`localhost`, Pages domain) in GCP Console → Credentials
 
 **Test**
 - Sign in with Google and GitHub locally → protected routes accessible; sign out → redirected to `/login`
 - Network tab shows `Authorization: Bearer ...` on API calls; prod build has no `X-Demo-User`
 
 ### 6c. Service token verification
-- [ ] Add `firebase.google.com/go/v4`; verify ID tokens with `auth.Client.VerifyIDToken` (uses public certs, no secret needed; on Cloud Run uses default credentials, locally set `GOOGLE_CLOUD_PROJECT`)
-- [ ] Middleware: missing/invalid token on protected endpoints → 401; resolve Firebase `uid` → user id
-- [ ] Add `firebase_uid` mapping (unique) and create user/player on first sign-in, seeding handle/avatar from token claims
-- [ ] Only honour `X-Demo-User` when `OPEN_SKILL_DEMO_AUTH=1` (dev/tests); off by default
-- [ ] Remove `X-Demo-User` from CORS allowed headers unless demo auth is enabled
-- [ ] Keep tests working via an injectable token verifier (fake in tests)
+- [x] Add `firebase.google.com/go/v4`; verify ID tokens with `VerifyIDToken` (public certs, no credentials: `OPEN_SKILL_FIREBASE_PROJECT_ID` only)
+- [x] Missing token on protected endpoints → 401; invalid token → 401 everywhere; anonymous allowed on leaderboard, modes, community lookup/membership, browse
+- [x] User id `fb_<uid>` / player `p_<uid>` created on first sign-in; handle from display name (never email), random suffix if taken; cached so later requests skip the DB
+- [x] Only honour `X-Demo-User` when `OPEN_SKILL_DEMO_AUTH=1` (dev/tests); service refuses to start with no auth configured
+- [x] Remove `X-Demo-User` from CORS allowed headers unless demo auth is enabled
+- [x] Injectable `TokenVerifier` (fake in `internal/api/auth_test.go`)
+- [ ] Never set `FIREBASE_AUTH_EMULATOR_HOST` in production (the SDK then skips signature checks)
 
 **Test**
-- No token → 401 on protected endpoints; public endpoints (health, public leaderboard) still work
-- Forged `X-Demo-User` with demo auth off → ignored / 401
-- Expired or tampered token → 401
-- First sign-in creates the user; second sign-in reuses it
-- Two signed-in users see only their own memberships/permissions
-- `go test ./...` and `npm test` pass
+- [x] No token → 401 on protected endpoints; public endpoints (health, public leaderboard) still work (unit tests + smoke test with real verifier)
+- [x] Forged `X-Demo-User` with demo auth off → 401
+- [x] Tampered/garbage token → 401
+- [x] First sign-in creates the user; second sign-in reuses it
+- [ ] Two real signed-in users see only their own memberships/permissions (manual, browser)
+- [x] `go test ./...` and `npm test` pass
 
 ### 6d. Discord sign-in (optional, via custom token)
 - [ ] Register a Discord application; store client secret in Secret Manager

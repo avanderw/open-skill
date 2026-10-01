@@ -41,7 +41,7 @@ func TestReportMatchRejectsParticipantOutsideCommunity(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Demo-User", "u_demo")
 	res := httptest.NewRecorder()
-	New(st).Handler().ServeHTTP(res, req)
+	New(st, AuthConfig{Demo: true}).Handler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want %d; body = %s", res.Code, http.StatusUnprocessableEntity, res.Body.String())
@@ -57,7 +57,7 @@ func TestReportMatchReturnsNotFoundForUnknownPlayer(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Demo-User", "u_demo")
 	res := httptest.NewRecorder()
-	New(st).Handler().ServeHTTP(res, req)
+	New(st, AuthConfig{Demo: true}).Handler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d; body = %s", res.Code, http.StatusNotFound, res.Body.String())
@@ -73,7 +73,7 @@ func TestReportMatchReturnsNotFoundForUnknownCommunity(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Demo-User", "u_demo")
 	res := httptest.NewRecorder()
-	New(st).Handler().ServeHTTP(res, req)
+	New(st, AuthConfig{Demo: true}).Handler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d; body = %s", res.Code, http.StatusNotFound, res.Body.String())
@@ -87,7 +87,7 @@ func TestGetCommunityRejectsUnknownDemoUser(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/communities/c_test", nil)
 	req.Header.Set("X-Demo-User", "u_unknown")
 	res := httptest.NewRecorder()
-	New(st).Handler().ServeHTTP(res, req)
+	New(st, AuthConfig{Demo: true}).Handler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d; body = %s", res.Code, http.StatusUnauthorized, res.Body.String())
@@ -101,7 +101,7 @@ func TestEmailDemoUserIsMaterialized(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	req.Header.Set("X-Demo-User", "Tester@Example.com")
 	res := httptest.NewRecorder()
-	New(st).Handler().ServeHTTP(res, req)
+	New(st, AuthConfig{Demo: true}).Handler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body = %s", res.Code, http.StatusOK, res.Body.String())
@@ -119,7 +119,7 @@ func TestCORSUsesConfiguredOrigins(t *testing.T) {
 	t.Setenv("OPEN_SKILL_ALLOWED_ORIGINS", "http://localhost:5173, https://example.test")
 	handler := cors(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
-	}))
+	}), false)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	req.Header.Set("Origin", "https://example.test")
@@ -135,7 +135,7 @@ func TestCORSOmitsDisallowedOrigins(t *testing.T) {
 	t.Setenv("OPEN_SKILL_ALLOWED_ORIGINS", "http://localhost:5173")
 	handler := cors(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
-	}))
+	}), false)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	req.Header.Set("Origin", "https://untrusted.test")

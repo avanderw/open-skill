@@ -3,7 +3,7 @@
 	import { goto, invalidateAll, replaceState } from '$app/navigation';
 	import type { LeaderboardRow, Mode } from '$lib/api';
 	import { api } from '$lib/api';
-	import { isDemoAuthenticated } from '$lib/auth';
+	import { AUTH_CHANGE_EVENT, authReady, isAuthenticated } from '$lib/auth';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -32,9 +32,9 @@
 		return modes.filter((mode) => available.has(mode.id));
 	});
 	onMount(() => {
-		const sync = () => (authenticated = isDemoAuthenticated());
-		sync();
-		window.addEventListener('demo-auth-change', sync);
+		const sync = () => (authenticated = isAuthenticated());
+		authReady().then(sync);
+		window.addEventListener(AUTH_CHANGE_EVENT, sync);
 		const joined = $page.url.searchParams.get('joined');
 		if (joined) {
 			showToast(joined === 'pending' ? `Join request sent to ${community?.name ?? 'the community'}.` : `You joined ${community?.name ?? 'the community'}.`);
@@ -53,7 +53,7 @@
 				// Ignore a malformed handoff.
 			}
 		}
-		return () => window.removeEventListener('demo-auth-change', sync);
+		return () => window.removeEventListener(AUTH_CHANGE_EVENT, sync);
 	});
 	const filtered = $derived.by(() => {
 		const q = search.trim().toLowerCase();

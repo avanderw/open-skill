@@ -4,7 +4,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { isDemoAuthenticated, isProtectedPath, loginPath, logoutDemo } from '$lib/auth';
+	import { AUTH_CHANGE_EVENT, authReady, DEMO_AUTH, isAuthenticated, isProtectedPath, loginPath, signOut as authSignOut } from '$lib/auth';
 	import { selectedDebugProfile } from '$lib/debug-profiles';
 	import { api } from '$lib/api';
 	import { onMount } from 'svelte';
@@ -13,20 +13,26 @@
 	let authenticated = $state(false);
 	let hydrated = $state(false);
 	let menuOpen = $state(false);
-	let currentUser = $state(selectedDebugProfile());
+	let handle = $state(DEMO_AUTH ? selectedDebugProfile().handle : '');
 	let playerId = $state('');
 
 	onMount(() => {
 		const sync = () => {
-			authenticated = isDemoAuthenticated();
-			currentUser = selectedDebugProfile();
+			authenticated = isAuthenticated();
+			if (DEMO_AUTH) handle = selectedDebugProfile().handle;
+			if (!authenticated) {
+				playerId = '';
+				return;
+			}
 			// The database starts empty, so the player id is resolved server-side.
-			api.me().then((me) => { playerId = me.playerId; currentUser = { ...currentUser, handle: me.handle }; }).catch(() => { playerId = ''; });
+			api.me().then((me) => { playerId = me.playerId; handle = me.handle; }).catch(() => { playerId = ''; });
 		};
-		sync();
-		hydrated = true;
-		window.addEventListener('demo-auth-change', sync);
-		return () => window.removeEventListener('demo-auth-change', sync);
+		authReady().then(() => {
+			sync();
+			hydrated = true;
+		});
+		window.addEventListener(AUTH_CHANGE_EVENT, sync);
+		return () => window.removeEventListener(AUTH_CHANGE_EVENT, sync);
 	});
 
 	$effect(() => {
@@ -35,9 +41,9 @@
 		}
 	});
 
-	function signOut() {
+	async function signOut() {
 		menuOpen = false;
-		logoutDemo();
+		await authSignOut();
 		goto('/login');
 	}
 </script>
@@ -51,7 +57,7 @@
 		{#if authenticated}
 			<div class="account-menu">
 				<button class="account-toggle" aria-expanded={menuOpen} aria-haspopup="menu" onclick={() => (menuOpen = !menuOpen)}>
-					<span class="account-avatar">{currentUser.handle.slice(0, 2).toUpperCase()}</span><span>{currentUser.handle}</span><span aria-hidden="true">⌄</span>
+					<span class="account-avatar">{(handle || '?').slice(0, 2).toUpperCase()}</span><span>{handle}</span><span aria-hidden="true">⌄</span>
 				</button>
 				{#if menuOpen}
 					<div class="account-dropdown" role="menu"><a role="menuitem" href={`/profile/${playerId}`} onclick={() => (menuOpen = false)}>Profile</a><a role="menuitem" href="/communities" onclick={() => (menuOpen = false)}>My communities</a><button role="menuitem" onclick={signOut}>Sign out</button></div>

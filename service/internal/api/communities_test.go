@@ -50,7 +50,7 @@ func createCommunity(t *testing.T, h http.Handler, name string) model.Community 
 }
 
 func TestCreateCommunityGeneratesUniqueCodesForIdenticalNames(t *testing.T) {
-	h := New(newCommunityTestStore(t)).Handler()
+	h := New(newCommunityTestStore(t), AuthConfig{Demo: true}).Handler()
 
 	seen := map[string]bool{}
 	for i := 0; i < 25; i++ {
@@ -66,7 +66,7 @@ func TestCreateCommunityGeneratesUniqueCodesForIdenticalNames(t *testing.T) {
 }
 
 func TestCreateCommunityReturnsOwnerAsMember(t *testing.T) {
-	h := New(newCommunityTestStore(t)).Handler()
+	h := New(newCommunityTestStore(t), AuthConfig{Demo: true}).Handler()
 	created := createCommunity(t, h, "Fresh Squad")
 	if created.Members != 1 {
 		t.Fatalf("created members = %d, want 1", created.Members)
@@ -86,7 +86,7 @@ func TestCreateCommunityReturnsOwnerAsMember(t *testing.T) {
 }
 
 func TestCommunityLeaderboardShowsCreatorWithoutMatches(t *testing.T) {
-	h := New(newCommunityTestStore(t)).Handler()
+	h := New(newCommunityTestStore(t), AuthConfig{Demo: true}).Handler()
 	created := createCommunity(t, h, "Fresh Squad")
 
 	for _, mode := range []string{"1v1", "team", "ffa"} {

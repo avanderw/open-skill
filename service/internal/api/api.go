@@ -15,29 +15,17 @@ import (
 	"open-skill/service/internal/store"
 )
 
-// Server is the HTTP API. It holds the store and applies the stub auth user.
+// Server is the HTTP API.
 type Server struct {
 	store    *store.Store
-	stubUser string // fallback user when no demo header is supplied
+	auth     AuthConfig
+	users    knownUsers
+	stubUser string // demo-mode fallback user when no demo header is supplied
 }
 
-func (s *Server) actorID(r *http.Request) (string, error) {
-	id := strings.TrimSpace(strings.ToLower(r.Header.Get("X-Demo-User")))
-	if id == "" {
-		id = s.stubUser
-	} else if id != "u_demo" && id != "u_member" && id != "u_guest" && !strings.Contains(id, "@") {
-		return "", fmt.Errorf("unknown demo user")
-	}
-	// The database starts empty, so the stub identity is created on first use.
-	if err := s.store.EnsureDemoIdentity(r.Context(), id); err != nil {
-		return "", err
-	}
-	return id, nil
-}
-
-// New builds an API server for the given store with a default stub user.
-func New(st *store.Store) *Server {
-	return &Server{store: st, stubUser: "u_demo"}
+// New builds an API server for the given store.
+func New(st *store.Store, auth AuthConfig) *Server {
+	return &Server{store: st, auth: auth, stubUser: "u_demo"}
 }
 
 // Handler returns the root http.Handler with all routes mounted.
@@ -67,11 +55,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/matches/{id}", s.handleGetMatch)
 	mux.HandleFunc("PUT /api/matches/{id}", s.handleUpdateMatch)
 	mux.HandleFunc("DELETE /api/matches/{id}", s.handleDeleteMatch)
-	return logMiddleware(cors(mux))
+	return logMiddleware(cors(mux, s.auth.Demo))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "open-skill", "user": s.stubUser})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "open-skill"})
 }
 
 // handleMe returns the fixed demo identity, documented as the FFI for the auth stub.
@@ -104,7 +92,7 @@ func (s *Server) handleListCommunities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleBrowseCommunities(w http.ResponseWriter, r *http.Request) {
-	actor, err := s.actorID(r)
+	actor, err := s.optionalActor(r)
 	if err != nil {
 		writeErr(w, http.StatusUnauthorized, "%v", err)
 		return
@@ -173,7 +161,7 @@ func (s *Server) handleCreateCommunity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetCommunityByCode(w http.ResponseWriter, r *http.Request) {
-	actor, err := s.actorID(r)
+	actor, err := s.optionalActor(r)
 	if err != nil {
 		writeErr(w, http.StatusUnauthorized, "%v", err)
 		return
@@ -214,7 +202,7 @@ func (s *Server) handleJoinCommunity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMembership(w http.ResponseWriter, r *http.Request) {
-	actor, err := s.actorID(r)
+	actor, err := s.optionalActor(r)
 	if err != nil {
 		writeErr(w, http.StatusUnauthorized, "%v", err)
 		return
@@ -347,7 +335,7 @@ func (s *Server) handleUpdateIntegration(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
-	actor, err := s.actorID(r)
+	actor, err := s.optionalActor(r)
 	if err != nil {
 		writeErr(w, http.StatusUnauthorized, "%v", err)
 		return
@@ -378,7 +366,7 @@ func (s *Server) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 // handleLeaderboardModes lists the modes that actually have reported matches so
 // the client can hide empty mode tabs.
 func (s *Server) handleLeaderboardModes(w http.ResponseWriter, r *http.Request) {
-	if _, err := s.actorID(r); err != nil {
+	if _, err := s.optionalActor(r); err != nil {
 		writeErr(w, http.StatusUnauthorized, "%v", err)
 		return
 	}
@@ -582,9 +570,13 @@ func writeErr(w http.ResponseWriter, code int, format string, a ...any) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"error": fmt.Sprintf(format, a...)})
 }
 
-// cors allows the Svelte dev server to call the API cross-origin.
-func cors(next http.Handler) http.Handler {
+// cors allows the configured app origins to call the API cross-origin.
+func cors(next http.Handler, demoAuth bool) http.Handler {
 	allowedOrigins := configuredOrigins(os.Getenv("OPEN_SKILL_ALLOWED_ORIGINS"))
+	allowedHeaders := "Content-Type, Authorization"
+	if demoAuth {
+		allowedHeaders += ", X-Demo-User"
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		if allowedOrigins["*"] {
@@ -594,7 +586,7 @@ func cors(next http.Handler) http.Handler {
 			w.Header().Add("Vary", "Origin")
 		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Demo-User")
+		w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return

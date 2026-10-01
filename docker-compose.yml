@@ -6,6 +6,8 @@ services:
       - "8080:8080"
     volumes:
       - sqlite-data:/data
+    environment:
+      OPEN_SKILL_FIREBASE_PROJECT_ID: ${OPEN_SKILL_FIREBASE_PROJECT_ID:?set OPEN_SKILL_FIREBASE_PROJECT_ID}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/api/health"]

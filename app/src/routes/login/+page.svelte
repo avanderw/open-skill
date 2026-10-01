@@ -1,27 +1,52 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { loginDemo } from '$lib/auth';
+	import { DEMO_AUTH, loginDemo, signIn, type AuthProvider } from '$lib/auth';
 	import { setDebugProfile } from '$lib/debug-profiles';
 
-	const providers = [
-		{ id: 'discord', label: 'Continue with Discord', copy: 'Use the community identity you already have.', icon: 'D' },
-		{ id: 'gmail', label: 'Continue with Gmail', copy: 'Use a familiar account to get started.', icon: 'G' }
+	const providers: { id: AuthProvider; label: string; copy: string; icon: string }[] = [
+		{ id: 'google', label: 'Continue with Google', copy: 'Use a familiar account to get started.', icon: 'G' },
+		{ id: 'github', label: 'Continue with GitHub', copy: 'Sign in with your developer identity.', icon: 'GH' }
 	];
 
 	let email = $state('');
+	let busy = $state(false);
+	let error = $state('');
 
-	function login() {
-		loginDemo();
+	function continueToApp() {
 		const returnTo = $page.url.searchParams.get('returnTo') || '/communities';
 		goto(returnTo.startsWith('/') && !returnTo.startsWith('//') && returnTo !== '/' ? returnTo : '/communities');
+	}
+
+	async function login(provider: AuthProvider) {
+		if (DEMO_AUTH) {
+			loginDemo();
+			continueToApp();
+			return;
+		}
+		busy = true;
+		error = '';
+		try {
+			await signIn(provider);
+			continueToApp();
+		} catch (err) {
+			const code = (err as { code?: string }).code ?? '';
+			if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+				error = code === 'auth/account-exists-with-different-credential'
+					? 'An account already exists with this email using a different sign-in provider.'
+					: 'Sign-in failed. Please try again.';
+			}
+		} finally {
+			busy = false;
+		}
 	}
 
 	function loginWithEmail() {
 		const username = email.trim().toLowerCase();
 		if (!username) return;
 		setDebugProfile(username);
-		login();
+		loginDemo();
+		continueToApp();
 	}
 </script>
 
@@ -46,23 +71,30 @@
 		<section class="card login-card">
 			<p class="label-caps">Welcome back</p>
 			<h2>Sign in to continue</h2>
-			<p class="muted">Choose a provider or enter an email to use as the temporary username. No authentication is performed yet.</p>
+			{#if DEMO_AUTH}
+				<p class="muted">Demo mode: choose a provider or enter an email to use as the temporary username. No authentication is performed.</p>
+			{:else}
+				<p class="muted">Choose a provider to sign in.</p>
+			{/if}
 			<div class="provider-list">
 				{#each providers as provider}
-					<button class="provider provider-{provider.id}" onclick={login}>
+					<button class="provider provider-{provider.id}" disabled={busy} onclick={() => login(provider.id)}>
 						<span class="provider-icon">{provider.icon}</span>
 						<span class="provider-copy"><strong>{provider.label}</strong><small>{provider.copy}</small></span>
 						<span class="arrow">→</span>
 					</button>
 				{/each}
 			</div>
-			<form class="email-login" onsubmit={(event) => { event.preventDefault(); loginWithEmail(); }}>
-				<label for="email">Email</label>
-				<div class="email-row">
-					<input id="email" bind:value={email} type="email" autocomplete="email" placeholder="person@example.com" required />
-					<button class="email-submit" type="submit">Continue</button>
-				</div>
-			</form>
+			{#if error}<p class="error" role="alert">{error}</p>{/if}
+			{#if DEMO_AUTH}
+				<form class="email-login" onsubmit={(event) => { event.preventDefault(); loginWithEmail(); }}>
+					<label for="email">Email</label>
+					<div class="email-row">
+						<input id="email" bind:value={email} type="email" autocomplete="email" placeholder="person@example.com" required />
+						<button class="email-submit" type="submit">Continue</button>
+					</div>
+				</form>
+			{/if}
 			<a class="back" href="/leaderboard">← Continue browsing as guest</a>
 		</section>
 	</div>
@@ -84,8 +116,10 @@
 	.provider-list { display:grid; gap:14px; margin-bottom:18px; }
 	.provider { width:100%; display:flex; align-items:center; gap:16px; padding:18px; border:1px solid var(--theme-border); border-radius:22px; color:var(--theme-text); text-align:left; cursor:pointer; transition:transform .18s,border-color .18s,background .18s; background:rgba(255,255,255,.03); }
 	.provider:hover { transform:translateY(-1px); border-color:var(--theme-accent); background:rgba(240,90,26,.08); }
-	.provider-discord { background:rgba(88,101,242,.18); } .provider-gmail { background:rgba(255,255,255,.92); color:#18181b; }
-	.provider-icon { width:50px; height:50px; border-radius:16px; display:grid; place-items:center; flex:none; font-size:22px; font-weight:800; background:var(--theme-accent); color:#fff; } .provider-discord .provider-icon { background:#5865f2; } .provider-gmail .provider-icon { background:#ea4335; }
+	.provider-google { background:rgba(255,255,255,.92); color:#18181b; } .provider-github { background:rgba(255,255,255,.06); }
+	.provider:disabled { opacity:.6; cursor:progress; transform:none; }
+	.error { color:#ff8a80; font-size:13px; margin:-6px 0 14px; }
+	.provider-icon { width:50px; height:50px; border-radius:16px; display:grid; place-items:center; flex:none; font-size:22px; font-weight:800; background:var(--theme-accent); color:#fff; } .provider-google .provider-icon { background:#ea4335; } .provider-github .provider-icon { background:#24292f; font-size:18px; }
 	.provider-copy { flex:1; display:flex; flex-direction:column; gap:4px; } .provider-copy strong { font-size:16px; } .provider-copy small { font-size:12px; opacity:.72; } .arrow { font-size:20px; color:var(--theme-accent); }
 	.email-login { display:grid; gap:8px; margin:4px 0 18px; }
 	.email-login label { color:var(--theme-text-muted); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }

@@ -24,7 +24,7 @@ export function selectedDebugProfile(): DebugProfile {
 export function setDebugProfile(id: string) {
 	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem(DEBUG_PROFILE_KEY, id.trim().toLowerCase());
-		window.dispatchEvent(new Event('demo-auth-change'));
+		window.dispatchEvent(new Event('auth-change'));
 	}
 }
 

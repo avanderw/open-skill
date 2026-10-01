@@ -1,4 +1,4 @@
-import { selectedDebugProfile } from '$lib/debug-profiles';
+import { authHeaders } from '$lib/auth';
 
 // API client — talks to the Go service over /api (proxied in dev).
 // Types mirror the service's JSON contracts.
@@ -105,17 +105,13 @@ export interface MatchResult {
 	participants: { playerId: string; handle?: string; team: string; score: number; finish: number; ratingDelta: number }[];
 }
 
-export function demoRequestHeaders(): HeadersInit {
-	return { 'X-Demo-User': selectedDebugProfile().id };
-}
-
 // Empty base keeps requests same-origin (Vite proxy in dev, nginx in Docker).
 const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
 
 function createRequest(fetcher: typeof globalThis.fetch, baseUrl: string) {
 	const base = baseUrl.replace(/\/+$/, '');
 	return async function req<T>(path: string, init?: RequestInit): Promise<T> {
-		const headers: Record<string, string> = { ...demoRequestHeaders() as Record<string, string> };
+		const headers: Record<string, string> = await authHeaders();
 		if (init?.headers instanceof Headers) init.headers.forEach((value, key) => { headers[key] = value; });
 		else if (Array.isArray(init?.headers)) init.headers.forEach(([key, value]) => { headers[key] = value; });
 		else Object.assign(headers, init?.headers ?? {});

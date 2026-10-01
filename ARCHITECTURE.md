@@ -33,7 +33,7 @@
 - SQLite uses `modernc.org/sqlite` without cgo.
 - Setting `OPEN_SKILL_DB_URL` (e.g. `libsql://...turso.io`) with `OPEN_SKILL_DB_TOKEN` switches the store to a remote libSQL/Turso database via `libsql-client-go` (also cgo-free); otherwise the `-db` file is used.
 - Invite codes use the documented human-readable code generator in the API.
-- Authentication is a demo identity stub. Allowed CORS origins are configured with `OPEN_SKILL_ALLOWED_ORIGINS`.
+- The app authenticates with Firebase Auth and sends an ID token as `Authorization: Bearer`; `VITE_DEMO_AUTH=1` (dev builds only) sends the `X-Demo-User` demo identity instead. The service verifies Firebase ID tokens (`OPEN_SKILL_FIREBASE_PROJECT_ID`) and maps them to users `fb_<uid>`, created on first sign-in; `X-Demo-User` is only trusted with `OPEN_SKILL_DEMO_AUTH=1`. Leaderboard, community lookup/membership and browse allow anonymous callers; other endpoints require sign-in. Allowed CORS origins are configured with `OPEN_SKILL_ALLOWED_ORIGINS`.
 
 ## Domain Rules
 

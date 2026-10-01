@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Community } from '$lib/api';
-	import { isDemoAuthenticated } from '$lib/auth';
+	import { AUTH_CHANGE_EVENT, authReady, isAuthenticated } from '$lib/auth';
 	let { data } = $props();
 	const initial = data.communities as Community[];
 	let query = $state('');
 	let authenticated = $state(false);
 	const communities = $derived(initial.filter((community) => community.name.toLowerCase().includes(query.trim().toLowerCase())));
 	onMount(() => {
-		const sync = () => (authenticated = isDemoAuthenticated());
-		sync();
-		window.addEventListener('demo-auth-change', sync);
-		return () => window.removeEventListener('demo-auth-change', sync);
+		const sync = () => (authenticated = isAuthenticated());
+		authReady().then(sync);
+		window.addEventListener(AUTH_CHANGE_EVENT, sync);
+		return () => window.removeEventListener(AUTH_CHANGE_EVENT, sync);
 	});
 </script>
 <svelte:head><title>Browse communities — Open-Skill</title></svelte:head>
