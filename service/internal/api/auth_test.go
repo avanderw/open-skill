@@ -132,9 +132,10 @@ func TestCORSAllowsDemoHeaderOnlyInDemoMode(t *testing.T) {
 
 func TestPlayerHandle(t *testing.T) {
 	cases := map[string]string{
-		"":                                 "player",
-		"  Ada   Lovelace ":                "Ada Lovelace",
-		"An Extremely Long Display Name X": "An Extremely Long Displa",
+		"":                          "player",
+		"  Ada   Lovelace ":         "Ada Lovelace",
+		"Andrew van der Westhuizen": "Andrew van der Westhuizen",
+		strings.Repeat("x", 70):     strings.Repeat("x", maxHandleRunes),
 	}
 	for in, want := range cases {
 		if got := playerHandle(in); got != want {

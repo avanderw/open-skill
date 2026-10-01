@@ -123,6 +123,9 @@ func (s *Server) optionalActor(r *http.Request) (string, error) {
 	return s.identify(r)
 }
 
+// maxHandleRunes bounds handles to keep leaderboards readable while fitting full names.
+const maxHandleRunes = 64
+
 // playerHandle derives a public handle from the display name. Emails are never
 // used so they are not exposed on leaderboards.
 func playerHandle(name string) string {
@@ -130,8 +133,8 @@ func playerHandle(name string) string {
 	if handle == "" {
 		return "player"
 	}
-	if runes := []rune(handle); len(runes) > 24 {
-		handle = string(runes[:24])
+	if runes := []rune(handle); len(runes) > maxHandleRunes {
+		handle = string(runes[:maxHandleRunes])
 	}
 	return handle
 }
