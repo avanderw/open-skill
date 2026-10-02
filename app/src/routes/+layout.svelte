@@ -4,6 +4,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { AUTH_CHANGE_EVENT, authReady, DEMO_AUTH, isAuthenticated, isProtectedPath, loginPath, signOut as authSignOut } from '$lib/auth';
 	import { selectedDebugProfile } from '$lib/debug-profiles';
 	import { api } from '$lib/api';
@@ -44,7 +45,7 @@
 	async function signOut() {
 		menuOpen = false;
 		await authSignOut();
-		goto('/login');
+		goto(`${base}/login`);
 	}
 </script>
 
@@ -53,14 +54,14 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="site-nav" aria-label="Primary">
 	<div class="site-nav-inner">
-		<a class="brand" href={authenticated ? '/communities' : '/'}>Open&#8209;Skill</a>
+		<a class="brand" href={authenticated ? `${base}/communities` : `${base}/`}>Open&#8209;Skill</a>
 		{#if authenticated}
 			<div class="account-menu">
 				<button class="account-toggle" aria-expanded={menuOpen} aria-haspopup="menu" onclick={() => (menuOpen = !menuOpen)}>
 					<span class="account-avatar">{(handle || '?').slice(0, 2).toUpperCase()}</span><span>{handle}</span><span aria-hidden="true">⌄</span>
 				</button>
 				{#if menuOpen}
-					<div class="account-dropdown" role="menu"><a role="menuitem" href={`/profile/${playerId}`} onclick={() => (menuOpen = false)}>Profile</a><a role="menuitem" href="/communities" onclick={() => (menuOpen = false)}>My communities</a><button role="menuitem" onclick={signOut}>Sign out</button></div>
+					<div class="account-dropdown" role="menu"><a role="menuitem" href={`${base}/profile/${playerId}`} onclick={() => (menuOpen = false)}>Profile</a><a role="menuitem" href={`${base}/communities`} onclick={() => (menuOpen = false)}>My communities</a><button role="menuitem" onclick={signOut}>Sign out</button></div>
 				{/if}
 			</div>
 		{:else if $page.url.pathname !== '/login'}

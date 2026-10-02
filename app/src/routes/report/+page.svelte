@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api, type LeaderboardRow, type MatchOutcome } from '$lib/api';
 
 	let { data } = $props();
@@ -215,7 +216,7 @@
 				deltas: outcome.deltas.map((delta) => ({ ...delta, handle: playerName(delta.playerId) }))
 			}));
 			await invalidateAll();
-			await goto(`/leaderboard?communityId=${encodeURIComponent(communityId)}&mode=${outcome.mode}`);
+			await goto(`${base}/leaderboard?communityId=${encodeURIComponent(communityId)}&mode=${outcome.mode}`);
 		} catch (e) { error = (e as Error).message; } finally { submitting = false; }
 	}
 </script>
@@ -233,7 +234,7 @@
 		</section>
 
 		<section class="card form-shell">
-			<div class="community-banner"><span class="community-avatar">{avatar(community?.name ?? 'Community')}</span><div><p class="label-caps">Community</p><strong>{community?.name ?? communityId}</strong><p class="hint">{community?.draws ? 'Draws allowed' : 'No draws'} · {players.length} players on the roster</p></div><a class="btn btn-ghost" href="/communities">Change</a></div>
+			<div class="community-banner"><span class="community-avatar">{avatar(community?.name ?? 'Community')}</span><div><p class="label-caps">Community</p><strong>{community?.name ?? communityId}</strong><p class="hint">{community?.draws ? 'Draws allowed' : 'No draws'} · {players.length} players on the roster</p></div><a class="btn btn-ghost" href={`${base}/communities`}>Change</a></div>
 			<div>
 				<p class="section-title">Participants</p>
 				<p class="hint">Select players from the roster. Add teams when the match was played by sides, then drag participants between teams.</p>

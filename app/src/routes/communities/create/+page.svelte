@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api';
 
 	let name = $state('');
@@ -19,7 +20,7 @@
 		try {
 			const c = await api.createCommunity({ name: name.trim(), mode, draws });
 			createdCode = c.code;
-			goto(`/communities/${encodeURIComponent(c.id)}`);
+			goto(`${base}/communities/${encodeURIComponent(c.id)}`);
 		} catch (e) {
 			error = (e as Error).message;
 		} finally {
@@ -36,7 +37,7 @@
 				<h1>Create Community</h1>
 				<p>Set up a new community, choose how members join, and preview the invite code.</p>
 			</div>
-			<a class="btn btn-secondary" href="/communities" style="padding:10px 16px; font-size:12px;">My communities</a>
+			<a class="btn btn-secondary" href={`${base}/communities`} style="padding:10px 16px; font-size:12px;">My communities</a>
 		</div>
 
 		<div class="grid-create">
@@ -78,7 +79,7 @@
 				{#if error}<p class="alert-err">{error}</p>{/if}
 
 				<div style="display:flex; gap:12px; flex-wrap:wrap;">
-					<a class="btn btn-secondary" href="/communities">Cancel</a>
+					<a class="btn btn-secondary" href={`${base}/communities`}>Cancel</a>
 					<button class="btn btn-primary" disabled={submitting} onclick={submit}>
 						{submitting ? 'Creating…' : 'Create community'}
 					</button>

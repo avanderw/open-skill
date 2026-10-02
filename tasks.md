@@ -20,23 +20,24 @@ Each task is independently testable; complete in order where dependencies are no
 
 ## 2. GitHub Pages compatibility (app)
 
-- [ ] Add empty `app/static/.nojekyll` (Pages/Jekyll ignores `_app/`)
-- [ ] Change adapter `fallback` to `404.html` so deep links load
-- [ ] Decide hosting URL:
-  - [ ] Custom domain or `<user>.github.io` repo → no base path needed, **or**
-  - [ ] Project page `<user>.github.io/open-skill` → set `kit.paths.base` from env and replace hard-coded `href="/..."` / `goto('/...')` with `base`-prefixed paths (incl. `auth.ts` redirects)
+- [x] Add empty `app/static/.nojekyll` (Pages/Jekyll ignores `_app/`)
+- [x] Change adapter `fallback` to `404.html` so deep links load
+- [x] Hosting URL decided: custom domain cascades to project pages as a subpath → `https://avanderw.co.za/open-skill`. `VITE_BASE_PATH=/open-skill` sets `kit.paths.base` (`app/vite.config.ts`); all hard-coded `href="/..."`, `goto('/...')` and `redirect(307, '/...')` now use `` `${base}/...` `` (incl. `auth.ts` `isProtectedPath`/`loginPath`)
 
 **Test**
-- `npm run build` → `build/.nojekyll` and `build/404.html` exist
-- Serve `build/` under the base path locally; navigate directly to `/profile/<id>` and `/leaderboard` → page loads, links stay under base
+- `npm run build` (no `VITE_BASE_PATH`) → `build/.nojekyll` and `build/404.html` exist; asset links are root-relative (`/_app/...`) — unchanged for Docker/nginx
+- `VITE_BASE_PATH=/open-skill npm run build` → `build/404.html` asset links are `/open-skill/_app/...`
+- `npm test` and `npm run check` pass
 
 ---
 
 ## 3. GitHub Actions deploy for app
 
-- [ ] Add `.github/workflows/deploy-app.yml` (build `app/`, `actions/upload-pages-artifact`, `actions/deploy-pages`)
-- [ ] Pass `VITE_API_URL` from a repo variable
+- [x] Add `.github/workflows/deploy-app.yml` (build `app/`, `actions/upload-pages-artifact`, `actions/deploy-pages`)
+- [ ] Add repo variables: `VITE_API_URL` (Cloud Run URL, after task 5), `VITE_BASE_PATH=/open-skill`, `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`
 - [ ] Enable Pages → Source: GitHub Actions in repo settings
+- [ ] Do **not** add a `CNAME` file to this repo — the custom domain is configured on the `avanderw.github.io` user-site repo, which GitHub automatically cascades to project sites as a subpath
+- [ ] Add `https://avanderw.co.za` to `OPEN_SKILL_ALLOWED_ORIGINS` (service) and Firebase authorized domains (task 6a)
 
 **Test**
 - Push to `main` → workflow green → site loads at Pages URL
@@ -67,16 +68,29 @@ Each task is independently testable; complete in order where dependencies are no
 
 ## 5. Cloud Run deployment (service)
 
-- [ ] Confirm `service/Dockerfile` builds a small static image and listens on `$PORT` (default 8080)
-- [ ] Create GCP project, enable billing + **budget alert**
-- [ ] Store `OPEN_SKILL_DB_TOKEN` in Secret Manager
-- [ ] Deploy: `gcloud run deploy open-skill-service --source service --region europe-west1 --allow-unauthenticated --set-env-vars OPEN_SKILL_DB_URL=...,OPEN_SKILL_ALLOWED_ORIGINS=https://<user>.github.io --set-secrets OPEN_SKILL_DB_TOKEN=...`
-- [ ] Optional: `.github/workflows/deploy-service.yml` using Workload Identity Federation
+- [x] Confirm `service/Dockerfile` builds a small static image and listens on `$PORT` (default 8080)
+- [ ] GCP Console (no gcloud CLI needed): enable APIs, Artifact Registry repo, Workload Identity Federation, deploy service account, IAM bindings — see walkthrough below
+- [ ] Billing on `open-skill-25b83` (Firebase Blaze) + **budget alert**
+- [ ] Production Turso DB + token (separate from dev) → Secret Manager `turso_token`; grant the Cloud Run runtime service account `roles/secretmanager.secretAccessor`
+- [ ] Add GitHub repo secrets (`GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOY_SERVICE_ACCOUNT`) and variables (`OPEN_SKILL_DB_URL`, `OPEN_SKILL_ALLOWED_ORIGINS`)
+- [x] `.github/workflows/deploy-service.yml` — builds, pushes to Artifact Registry, deploys via Workload Identity Federation (keyless)
 
 **Test**
+- Push to `main` touching `service/**` → workflow green
 - `curl https://<service-url>/api/health` → `{"ok":true}`
-- Preflight: `curl -i -X OPTIONS -H "Origin: https://<user>.github.io" <service-url>/api/communities` → correct `Access-Control-Allow-Origin`
+- `curl https://<service-url>/api/communities` → 401; with `-H "X-Demo-User: u_demo"` → still 401
+- Preflight: `curl -i -X OPTIONS -H "Origin: https://<user>.github.io" <service-url>/api/communities` → correct `Access-Control-Allow-Origin`, no `X-Demo-User` in allowed headers
 - Request from a non-allowed origin → no ACAO header
+
+### GCP Console walkthrough (no gcloud CLI)
+1. **Enable APIs** — console.cloud.google.com/apis/library, enable: Cloud Run Admin API, Artifact Registry API, Secret Manager API, IAM Service Account Credentials API.
+2. **Artifact Registry repo** — console.cloud.google.com/artifacts → Create Repository → name `open-skill`, format Docker, region `europe-west1`.
+3. **Deploy service account** — IAM & Admin → Service Accounts → Create: `github-deployer`. Grant roles: Artifact Registry Writer, Cloud Run Admin, Service Account User.
+4. **Workload Identity Federation** — IAM & Admin → Workload Identity Federation → Create Pool (`github-pool`) → Add provider (OIDC, issuer `https://token.actions.githubusercontent.com`) → attribute mapping `google.subject = assertion.sub`, `attribute.repository = assertion.repository` → attribute condition `assertion.repository == "avanderw/open-skill"`.
+5. **[x] Allow the pool to impersonate the service account** — granted `principalSet://iam.googleapis.com/projects/54185533602/locations/global/workloadIdentityPools/github-pool/attribute.repository/avanderw/open-skill` the Workload Identity User role on `github-deployer`.
+6. **Secret** — Secret Manager → Create Secret `turso_token`, paste the production Turso token. Grant `secretAccessor` to both `github-deployer` and the default compute service account (Cloud Run runtime identity).
+7. **GitHub repo secrets** (Settings → Secrets and variables → Actions → Secrets): `GCP_WORKLOAD_IDENTITY_PROVIDER` (full provider resource name from step 4), `GCP_DEPLOY_SERVICE_ACCOUNT` (`github-deployer@open-skill-25b83.iam.gserviceaccount.com`).
+8. **GitHub repo variables** (same page → Variables): `OPEN_SKILL_DB_URL` (production Turso URL), `OPEN_SKILL_ALLOWED_ORIGINS` (start with `http://localhost:5173`, add the Pages origin after task 3).
 
 ---
 

@@ -17,4 +17,4 @@ COPY --from=build /out/open-skill-service /app/open-skill-service
 USER appuser
 EXPOSE 8080
 ENTRYPOINT ["/app/open-skill-service"]
-CMD ["-db", "/data/open-skill.db", "-addr", ":8080"]
+CMD ["-db", "/data/open-skill.db"]

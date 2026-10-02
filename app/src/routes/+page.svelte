@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 </script>
 
 <div class="page-wrap">
@@ -9,23 +10,23 @@
 			<h1>Open&#8209;Skill</h1>
 			<p>Rank players and teams across any community — sport, esports, or anything competitive.</p>
 			<div class="actions">
-				<button class="btn btn-primary" onclick={() => goto('/leaderboard')}>View leaderboard</button>
-				<button class="btn btn-secondary" onclick={() => goto('/communities')}>My communities</button>
+				<button class="btn btn-primary" onclick={() => goto(`${base}/leaderboard`)}>View leaderboard</button>
+				<button class="btn btn-secondary" onclick={() => goto(`${base}/communities`)}>My communities</button>
 			</div>
 		</section>
 
 		<section class="cards">
-			<a href="/leaderboard" class="card tile">
+			<a href={`${base}/leaderboard`} class="card tile">
 				<p class="label-caps">Leaderboard</p>
 				<h2>See the top players</h2>
 				<p>OpenSkill ratings across 1v1, team, and FFA — updated after every reported match.</p>
 			</a>
-			<a href="/communities" class="card tile">
+			<a href={`${base}/communities`} class="card tile">
 				<p class="label-caps">Communities</p>
 				<h2>Join by code or create your own</h2>
 				<p>Find your group, open or approval-based, and start competing.</p>
 			</a>
-			<a href="/report" class="card tile">
+			<a href={`${base}/report`} class="card tile">
 				<p class="label-caps">Report match</p>
 				<h2>Submit a result</h2>
 				<p>Pick participants and a winner — ratings update automatically.</p>

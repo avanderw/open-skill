@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 func main() {
 	var (
 		dbPath   = flag.String("db", "open-skill.db", "path to the SQLite database (ignored when OPEN_SKILL_DB_URL is set)")
-		addr     = flag.String("addr", ":8080", "http listen address")
+		addr     = flag.String("addr", defaultAddr(), "http listen address")
 		withSeed = flag.Bool("seed", os.Getenv("OPEN_SKILL_SEED") == "1", "load demo content into an empty database")
 	)
 	flag.Parse()
@@ -53,7 +54,8 @@ func main() {
 	)
 	if dbURL := os.Getenv("OPEN_SKILL_DB_URL"); dbURL != "" {
 		dbDesc = "remote libsql"
-		st, err = store.OpenRemote(dbURL, os.Getenv("OPEN_SKILL_DB_TOKEN"))
+		// Secrets piped into Secret Manager often carry a trailing newline.
+		st, err = store.OpenRemote(dbURL, strings.TrimSpace(os.Getenv("OPEN_SKILL_DB_TOKEN")))
 	} else {
 		st, err = store.Open(*dbPath)
 	}
@@ -86,4 +88,12 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdownCtx)
+}
+
+// defaultAddr listens on $PORT when set (Cloud Run), otherwise :8080.
+func defaultAddr() string {
+	if port := os.Getenv("PORT"); port != "" {
+		return ":" + port
+	}
+	return ":8080"
 }

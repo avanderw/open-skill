@@ -1,0 +1,59 @@
+name: Deploy service to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "service/**"
+      - ".github/workflows/deploy-service.yml"
+  workflow_dispatch: {}
+
+env:
+  PROJECT_ID: open-skill-25b83
+  REGION: europe-west1
+  REPOSITORY: open-skill
+  SERVICE: open-skill-service
+
+permissions:
+  contents: read
+  id-token: write # required for keyless auth (Workload Identity Federation)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        working-directory: service
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          service: ${{ env.SERVICE }}
+          image: ${{ env.IMAGE }}
+          flags: --allow-unauthenticated --max-instances=2 --memory=256Mi
+          env_vars: |
+            OPEN_SKILL_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
+            OPEN_SKILL_DB_URL=${{ vars.OPEN_SKILL_DB_URL }}
+            OPEN_SKILL_ALLOWED_ORIGINS=${{ vars.OPEN_SKILL_ALLOWED_ORIGINS }}
+          secrets: |
+            OPEN_SKILL_DB_TOKEN=turso_token:latest

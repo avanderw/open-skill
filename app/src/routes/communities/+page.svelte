@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import type { Community } from '$lib/api';
 
 	let { data } = $props();
@@ -28,7 +29,7 @@
 			const joined = await import('$lib/api').then(({ api }) => api.joinCommunity(code));
 			joinCode = '';
 			// The destination leaderboard surfaces the confirmation toast.
-			goto(`/leaderboard?communityId=${encodeURIComponent(joined.communityId)}&joined=${joined.status === 'pending' ? 'pending' : '1'}`);
+			goto(`${base}/leaderboard?communityId=${encodeURIComponent(joined.communityId)}&joined=${joined.status === 'pending' ? 'pending' : '1'}`);
 		} catch (e) {
 			joinMsg = { ok: false, text: (e as Error).message };
 		} finally {
@@ -52,8 +53,8 @@
 			<h1>My Communities</h1>
 			<p>Browse communities you belong to, jump into a community, or use a join code to enter a new one.</p>
 			<div class="header-actions">
-				<a class="btn btn-primary" href="/communities/browse">Browse Communities</a>
-				<a class="btn btn-secondary" href="/communities/start">Create community</a>
+				<a class="btn btn-primary" href={`${base}/communities/browse`}>Browse Communities</a>
+				<a class="btn btn-secondary" href={`${base}/communities/start`}>Create community</a>
 			</div>
 		</section>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import { DEMO_AUTH, loginDemo, signIn, type AuthProvider } from '$lib/auth';
 	import { setDebugProfile } from '$lib/debug-profiles';
 
@@ -14,8 +15,8 @@
 	let error = $state('');
 
 	function continueToApp() {
-		const returnTo = $page.url.searchParams.get('returnTo') || '/communities';
-		goto(returnTo.startsWith('/') && !returnTo.startsWith('//') && returnTo !== '/' ? returnTo : '/communities');
+		const returnTo = $page.url.searchParams.get('returnTo') || `${base}/communities`;
+		goto(returnTo.startsWith('/') && !returnTo.startsWith('//') && returnTo !== `${base}/` && returnTo !== '/' ? returnTo : `${base}/communities`);
 	}
 
 	async function login(provider: AuthProvider) {
@@ -95,7 +96,7 @@
 					</div>
 				</form>
 			{/if}
-			<a class="back" href="/leaderboard">← Continue browsing as guest</a>
+			<a class="back" href={`${base}/leaderboard`}>← Continue browsing as guest</a>
 		</section>
 	</div>
 </div>

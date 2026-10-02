@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 </script>
 
 <svelte:head><title>Start a community — Open-Skill</title></svelte:head>
 <div class="page-wrap"><div class="page-inner">
-	<a class="btn btn-ghost" href="/communities">← My communities</a>
+	<a class="btn btn-ghost" href={`${base}/communities`}>← My communities</a>
 	<section class="card hero"><p class="label-caps">Community journey</p><h1>Bring your players together.</h1><p>Start a new ranking space or join an existing community with a shared invite code.</p></section>
 	<section class="choice-grid">
-		<button class="card choice" onclick={() => goto('/communities/create')}><span class="choice-icon">＋</span><span class="label-caps">Create</span><h2>Start a community</h2><p>Choose the name, draw rules, and how players join.</p><span class="choice-link">Create community →</span></button>
-		<div class="card choice"><span class="choice-icon">⌁</span><span class="label-caps">Join</span><h2>Enter with a code</h2><p>Use an invite code from a community owner to join directly.</p><a class="choice-link" href="/communities#join">Join with a code →</a></div>
+		<button class="card choice" onclick={() => goto(`${base}/communities/create`)}><span class="choice-icon">＋</span><span class="label-caps">Create</span><h2>Start a community</h2><p>Choose the name, draw rules, and how players join.</p><span class="choice-link">Create community →</span></button>
+		<div class="card choice"><span class="choice-icon">⌁</span><span class="label-caps">Join</span><h2>Enter with a code</h2><p>Use an invite code from a community owner to join directly.</p><a class="choice-link" href={`${base}/communities#join`}>Join with a code →</a></div>
 	</section>
 </div></div>
 <style>

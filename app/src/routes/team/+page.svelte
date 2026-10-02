@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import type { LeaderboardRow } from '$lib/api';
 
 	let { data } = $props();
 	const communityId = data.communityId as string | null;
 	const players = (data.players as LeaderboardRow[] | null) ?? [];
 	const communities = (data.communities as import('$lib/api').Community[] | null) ?? [];
-	function chooseCommunity(id: string) { window.location.href = `/team?communityId=${encodeURIComponent(id)}`; }
+	function chooseCommunity(id: string) { window.location.href = `${base}/team?communityId=${encodeURIComponent(id)}`; }
 	let teamCount = $state(2);
 	let playersPerTeam = $state(2);
 	let selected = $state<string[]>(players.slice(0, 4).map((player) => player.playerId));
@@ -34,7 +35,7 @@
 	}
 	function generate() { if (!valid) { error = `Select exactly ${totalRequired} players (${teamCount} teams × ${playersPerTeam}).`; generated = false; return; } error = ''; generated = true; }
 	function regenerate() { seed += 1; generate(); }
-	function reportTeams() { const payload = teams.flatMap((team, i) => team.players.map((player) => [player.playerId, `Team ${i + 1}`])); goto(`/report?teams=${encodeURIComponent(JSON.stringify(payload))}${communityId ? `&communityId=${encodeURIComponent(communityId)}` : ''}`); }
+	function reportTeams() { const payload = teams.flatMap((team, i) => team.players.map((player) => [player.playerId, `Team ${i + 1}`])); goto(`${base}/report?teams=${encodeURIComponent(JSON.stringify(payload))}${communityId ? `&communityId=${encodeURIComponent(communityId)}` : ''}`); }
 </script>
 
 <svelte:head><title>Team builder — Open-Skill</title></svelte:head>

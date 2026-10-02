@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import type { Mode, LeaderboardRow, Community } from '$lib/api';
 import { createApi } from '$lib/api';
 
@@ -19,7 +20,7 @@ export const load: PageLoad = async ({ url, fetch }) => {
 			target.searchParams.set('communityId', mine[0].id);
 			redirect(307, `${target.pathname}${target.search}`);
 		}
-		redirect(307, '/communities');
+		redirect(307, `${base}/communities`);
 	}
 	const rows: LeaderboardRow[] = await api.leaderboard(mode, { q: q || undefined, sort: sort || undefined, full: full || undefined, communityId });
 	const availableModes: Mode[] = await api.leaderboardModes(communityId).catch(() => []);

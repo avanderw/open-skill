@@ -8,6 +8,7 @@ import {
 	signOut as firebaseSignOut,
 	type Auth
 } from 'firebase/auth';
+import { base } from '$app/paths';
 import { selectedDebugProfile } from '$lib/debug-profiles';
 
 // Demo auth (trusted X-Demo-User header) is only ever available in dev builds.
@@ -86,16 +87,19 @@ export async function authHeaders(): Promise<Record<string, string>> {
 }
 
 export function isProtectedPath(pathname: string): boolean {
+	// GitHub Pages can serve this app under a subpath; match against the
+	// in-app path once the base is stripped off.
+	const path = base && pathname.startsWith(base) ? pathname.slice(base.length) || '/' : pathname;
 	return (
-		pathname.startsWith('/communities') ||
-		pathname.startsWith('/team') ||
-		pathname.startsWith('/report') ||
-		pathname.startsWith('/profile') ||
-		pathname.startsWith('/settings') ||
-		pathname.startsWith('/history')
+		path.startsWith('/communities') ||
+		path.startsWith('/team') ||
+		path.startsWith('/report') ||
+		path.startsWith('/profile') ||
+		path.startsWith('/settings') ||
+		path.startsWith('/history')
 	);
 }
 
 export function loginPath(returnTo: string): string {
-	return `/login?returnTo=${encodeURIComponent(returnTo || '/')}`;
+	return `${base}/login?returnTo=${encodeURIComponent(returnTo || `${base}/`)}`;
 }
