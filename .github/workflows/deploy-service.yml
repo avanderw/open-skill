@@ -50,10 +50,9 @@ jobs:
           region: ${{ env.REGION }}
           service: ${{ env.SERVICE }}
           image: ${{ env.IMAGE }}
-          flags: --allow-unauthenticated --max-instances=2 --memory=256Mi
-          env_vars: |
-            OPEN_SKILL_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }}
-            OPEN_SKILL_DB_URL=${{ vars.OPEN_SKILL_DB_URL }}
-            OPEN_SKILL_ALLOWED_ORIGINS=${{ vars.OPEN_SKILL_ALLOWED_ORIGINS }}
-          secrets: |
-            OPEN_SKILL_DB_TOKEN=turso_token:latest
+          # env_vars/secrets inputs join entries with "," which breaks
+          # OPEN_SKILL_ALLOWED_ORIGINS (itself comma-separated); use ";" via flags instead.
+          flags: >-
+            --allow-unauthenticated --max-instances=2 --memory=256Mi
+            --update-env-vars=^;^OPEN_SKILL_FIREBASE_PROJECT_ID=${{ env.PROJECT_ID }};OPEN_SKILL_DB_URL=${{ vars.OPEN_SKILL_DB_URL }};OPEN_SKILL_ALLOWED_ORIGINS=${{ vars.OPEN_SKILL_ALLOWED_ORIGINS }}
+            --update-secrets=OPEN_SKILL_DB_TOKEN=turso_token:latest
