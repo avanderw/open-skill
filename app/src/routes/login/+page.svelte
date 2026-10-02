@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
-	import { DEMO_AUTH, loginDemo, signIn, type AuthProvider } from '$lib/auth';
+	import { AUTH_CHANGE_EVENT, authReady, DEMO_AUTH, isAuthenticated, loginDemo, signIn, type AuthProvider } from '$lib/auth';
 	import { setDebugProfile } from '$lib/debug-profiles';
 
 	const providers: { id: AuthProvider; label: string; copy: string; icon: string }[] = [
@@ -13,11 +14,22 @@
 	let email = $state('');
 	let busy = $state(false);
 	let error = $state('');
+	let checkingSession = $state(true);
 
 	function continueToApp() {
 		const returnTo = $page.url.searchParams.get('returnTo') || `${base}/communities`;
 		goto(returnTo.startsWith('/') && !returnTo.startsWith('//') && returnTo !== `${base}/` && returnTo !== '/' ? returnTo : `${base}/communities`);
 	}
+
+	onMount(() => {
+		const redirectIfSignedIn = () => {
+			if (isAuthenticated()) continueToApp();
+			else checkingSession = false;
+		};
+		authReady().then(redirectIfSignedIn);
+		window.addEventListener(AUTH_CHANGE_EVENT, redirectIfSignedIn);
+		return () => window.removeEventListener(AUTH_CHANGE_EVENT, redirectIfSignedIn);
+	});
 
 	async function login(provider: AuthProvider) {
 		if (DEMO_AUTH) {
@@ -72,6 +84,9 @@
 		<section class="card login-card">
 			<p class="label-caps">Welcome back</p>
 			<h2>Sign in to continue</h2>
+			{#if checkingSession}
+				<p class="muted">Checking your session…</p>
+			{:else}
 			{#if DEMO_AUTH}
 				<p class="muted">Demo mode: choose a provider or enter an email to use as the temporary username. No authentication is performed.</p>
 			{:else}
@@ -95,6 +110,7 @@
 						<button class="email-submit" type="submit">Continue</button>
 					</div>
 				</form>
+			{/if}
 			{/if}
 			<a class="back" href={`${base}/leaderboard`}>← Continue browsing as guest</a>
 		</section>
