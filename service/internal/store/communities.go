@@ -393,7 +393,7 @@ func (s *Store) JoinRequests(ctx context.Context, communityID string) ([]Communi
 		return nil, err
 	}
 	defer rows.Close()
-	var out []CommunityJoinRequest
+	out := []CommunityJoinRequest{}
 	for rows.Next() {
 		var r CommunityJoinRequest
 		if err := rows.Scan(&r.CommunityID, &r.UserID, &r.Status, &r.CreatedAt); err != nil {

@@ -398,7 +398,7 @@ func (s *Store) History(ctx context.Context, playerID, communityID string, mode 
 		return nil, err
 	}
 	defer rows.Close()
-	var out []MatchHistory
+	out := []MatchHistory{}
 	indexes := make(map[string]int)
 	for rows.Next() {
 		var h MatchHistory

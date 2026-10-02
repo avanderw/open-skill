@@ -58,6 +58,56 @@ func TestHistoryPaginationAndFiltering(t *testing.T) {
 	}
 }
 
+// Empty results must marshal to JSON "[]", not "null" — a nil slice would crash
+// clients that call .length on the decoded response.
+func TestHistoryReturnsEmptySliceNotNil(t *testing.T) {
+	st, err := Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	ctx := context.Background()
+	if _, err := st.DB().ExecContext(ctx, `
+		INSERT INTO users (id, display) VALUES ('u_demo', 'IronCrest');
+		INSERT INTO communities (id, name, mode, draws, code, owner_id) VALUES ('c_empty', 'Empty', 'open', 1, 'EMPT1', 'u_demo');`); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := st.History(ctx, "", "c_empty", "", 20, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rows == nil {
+		t.Fatal("History() returned a nil slice for an empty community; want a non-nil empty slice")
+	}
+	if len(rows) != 0 {
+		t.Fatalf("history for empty community = %d rows, want 0", len(rows))
+	}
+}
+
+func TestJoinRequestsReturnsEmptySliceNotNil(t *testing.T) {
+	st, err := Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	ctx := context.Background()
+	if _, err := st.DB().ExecContext(ctx, `
+		INSERT INTO users (id, display) VALUES ('u_demo', 'IronCrest');
+		INSERT INTO communities (id, name, mode, draws, code, owner_id) VALUES ('c_empty', 'Empty', 'open', 1, 'EMPT2', 'u_demo');`); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := st.JoinRequests(ctx, "c_empty")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rows == nil {
+		t.Fatal("JoinRequests() returned a nil slice with no pending requests; want a non-nil empty slice")
+	}
+	if len(rows) != 0 {
+		t.Fatalf("join requests for empty community = %d rows, want 0", len(rows))
+	}
+}
+
 func TestCommunitySettingsAndJoinModePersistence(t *testing.T) {
 	st, err := Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
