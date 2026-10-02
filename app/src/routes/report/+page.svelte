@@ -54,7 +54,7 @@
 	const sideKeys = $derived(teamNames.length ? teamNames : selected);
 	const usingPlaces = $derived(sideKeys.some((key) => (places[key] ?? 0) > 0));
 	const visiblePlayers = $derived(players.filter((player) => player.handle.toLowerCase().includes(playerSearch.trim().toLowerCase())));
-	const leaderboardHref = communityId ? `/leaderboard?communityId=${encodeURIComponent(communityId)}` : '/leaderboard';
+	const leaderboardHref = communityId ? `${base}/leaderboard?communityId=${encodeURIComponent(communityId)}` : `${base}/leaderboard`;
 
 	function playerName(id: string) { return players.find((player) => player.playerId === id)?.handle ?? 'Unknown player'; }
 	function playerRating(id: string) { return Math.round(players.find((player) => player.playerId === id)?.rating ?? 0); }
@@ -224,7 +224,7 @@
 <div class="page-wrap">
 	<div class="page-inner">
 		<div class="nav-row">
-			<a class="btn btn-ghost" href={editing ? `/history?communityId=${encodeURIComponent(communityId)}` : leaderboardHref} style="padding:8px 14px; font-size:12px;">&larr; {editing ? 'Match history' : 'Leaderboard'}</a>
+			<a class="btn btn-ghost" href={editing ? `${base}/history?communityId=${encodeURIComponent(communityId)}` : leaderboardHref} style="padding:8px 14px; font-size:12px;">&larr; {editing ? 'Match history' : 'Leaderboard'}</a>
 		</div>
 
 		<section class="card hero">
@@ -341,7 +341,7 @@
 			{/if}
 
 			<div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
-				<a class="btn btn-secondary" href={editing ? `/history?communityId=${encodeURIComponent(communityId)}` : leaderboardHref}>Cancel</a>
+				<a class="btn btn-secondary" href={editing ? `${base}/history?communityId=${encodeURIComponent(communityId)}` : leaderboardHref}>Cancel</a>
 				<button class="btn btn-primary" disabled={submitting} onclick={() => (review ? submit() : (review = true))}>
 					{submitting ? 'Saving…' : review ? (editing ? 'Save changes' : 'Confirm report') : (editing ? 'Review changes' : 'Review report')}
 				</button>

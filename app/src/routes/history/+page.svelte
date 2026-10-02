@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api, type Community, type MatchResult, type Mode } from '$lib/api';
 
 	let { data } = $props();
@@ -71,9 +72,9 @@
 <div class="page-wrap"><div class="page-inner">
 	<div class="nav">
 		{#if communityId}
-			<a class="btn btn-ghost" href={`/leaderboard?communityId=${encodeURIComponent(communityId)}`}>← Leaderboard</a>
+			<a class="btn btn-ghost" href={`${base}/leaderboard?communityId=${encodeURIComponent(communityId)}`}>← Leaderboard</a>
 		{:else}
-			<a class="btn btn-ghost" href={`/profile/${encodeURIComponent(playerId)}`}>← Profile</a>
+			<a class="btn btn-ghost" href={`${base}/profile/${encodeURIComponent(playerId)}`}>← Profile</a>
 		{/if}
 	</div>
 
@@ -101,7 +102,7 @@
 			<div class="empty">
 				<h2>No matches yet</h2>
 				<p class="muted">Report a match to start building history.</p>
-				{#if communityId}<a class="btn btn-primary" href={`/report?communityId=${encodeURIComponent(communityId)}`}>Report match</a>{/if}
+				{#if communityId}<a class="btn btn-primary" href={`${base}/report?communityId=${encodeURIComponent(communityId)}`}>Report match</a>{/if}
 			</div>
 		{:else}
 			<div class="history">
@@ -114,7 +115,7 @@
 							</div>
 							{#if canManage}
 								<div class="match-actions">
-									<a class="btn btn-ghost" href={`/report?communityId=${encodeURIComponent(match.communityId)}&matchId=${encodeURIComponent(match.matchId)}`}>Edit</a>
+									<a class="btn btn-ghost" href={`${base}/report?communityId=${encodeURIComponent(match.communityId)}&matchId=${encodeURIComponent(match.matchId)}`}>Edit</a>
 									<button class="btn btn-ghost danger" onclick={() => (pendingDelete = pendingDelete === match.matchId ? null : match.matchId)}>Delete</button>
 								</div>
 							{/if}
@@ -138,7 +139,7 @@
 										<strong>{side.label}</strong>
 										<div class="side-players">
 											{#each side.players as participant}
-												<a class="chip" href={`/profile/${encodeURIComponent(participant.playerId)}`}>
+												<a class="chip" href={`${base}/profile/${encodeURIComponent(participant.playerId)}`}>
 													{participant.handle ?? participant.playerId}
 													<b class:down={participant.ratingDelta < 0}>{participant.ratingDelta >= 0 ? '+' : ''}{Math.round(participant.ratingDelta * 10) / 10}</b>
 												</a>

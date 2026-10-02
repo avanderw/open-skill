@@ -40,7 +40,7 @@
 
 <svelte:head><title>Team builder — Open-Skill</title></svelte:head>
 <div class="page-wrap"><div class="page-inner">
-	<a class="btn btn-ghost back" href={communityId ? `/leaderboard?communityId=${encodeURIComponent(communityId)}` : '/leaderboard'}>← Back to leaderboard</a>
+	<a class="btn btn-ghost back" href={communityId ? `${base}/leaderboard?communityId=${encodeURIComponent(communityId)}` : `${base}/leaderboard`}>← Back to leaderboard</a>
 	<section class="card hero"><p class="label-caps">Team builder</p><h1>Build balanced teams</h1><p>{communityId ? 'Build a matchup from this community’s players.' : 'Select players and generate a fair matchup.'} Ratings are distributed to minimize team differences.</p></section>
 	<section class="card community-picker"><label for="team-community">Community</label><select id="team-community" value={communityId || ''} onchange={(event) => chooseCommunity((event.target as HTMLSelectElement).value)}><option value="">Select a community</option>{#each communities as c}<option value={c.id}>{c.name}</option>{/each}</select>{#if !communityId}<p class="alert">Select a community to load its players.</p>{/if}</section>
 	<section class="builder-grid">

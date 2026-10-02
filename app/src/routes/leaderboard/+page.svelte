@@ -88,7 +88,7 @@
 	}
 	async function shareCommunity() {
 		if (!community) return;
-		const url = `${window.location.origin}/communities?code=${encodeURIComponent(community.code)}`;
+		const url = `${window.location.origin}${base}/communities?code=${encodeURIComponent(community.code)}`;
 		const text = `Join ${community.name} on Open-Skill — use code ${community.code}`;
 		if (navigator.share) {
 			try {
