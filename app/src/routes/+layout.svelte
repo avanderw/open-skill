@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '../lib/theme/tokens.css';
 	import '../lib/theme/index.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -49,7 +48,7 @@
 	}
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /><meta name="description" content="Community rankings and match reporting" /><title>Open-Skill</title></svelte:head>
+<svelte:head><meta name="description" content="Community rankings and match reporting" /><title>Open-Skill</title></svelte:head>
 
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="site-nav" aria-label="Primary">
