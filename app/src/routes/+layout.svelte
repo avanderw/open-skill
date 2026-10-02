@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../lib/theme/tokens.css';
 	import '../lib/theme/index.css';
-	import { page } from '$app/stores';
+	import { navigating, page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { AUTH_CHANGE_EVENT, authReady, DEMO_AUTH, isAuthenticated, isProtectedPath, loginPath, signOut as authSignOut } from '$lib/auth';
@@ -50,6 +50,7 @@
 
 <svelte:head><meta name="description" content="Community rankings and match reporting" /><title>Open-Skill</title></svelte:head>
 
+{#if $navigating}<div class="nav-progress" aria-hidden="true"></div>{/if}
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="site-nav" aria-label="Primary">
 	<div class="site-nav-inner">
@@ -72,6 +73,8 @@
 <main id="main">{@render children()}</main>
 
 <style>
+	.nav-progress { position:fixed; top:0; left:0; width:100%; height:3px; z-index:60; background:linear-gradient(90deg,transparent,var(--theme-accent),transparent); background-size:200% 100%; animation:nav-progress-slide 1.1s ease-in-out infinite; }
+	@keyframes nav-progress-slide { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
 	.site-nav { border-bottom:1px solid var(--theme-border); background:rgba(11,11,11,.78); backdrop-filter:blur(6px); position:sticky; top:0; z-index:40; }
 	.site-nav-inner { max-width:1120px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
 	.brand { font-weight:800; font-size:18px; color:var(--theme-text); letter-spacing:.02em; }
