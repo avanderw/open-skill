@@ -3,6 +3,7 @@ import { createApi, type Community } from '$lib/api';
 
 export const load: PageLoad = async ({ fetch }) => {
 	const api = createApi(fetch);
-	const communities: Community[] = await api.communities();
+	// A reachability failure (e.g. CORS misconfiguration) shouldn't crash the whole page.
+	const communities: Community[] = await api.communities().catch(() => []);
 	return { communities };
 };

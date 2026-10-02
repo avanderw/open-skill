@@ -601,7 +601,8 @@ func configuredOrigins(value string) map[string]bool {
 	}
 	origins := make(map[string]bool)
 	for _, origin := range strings.Split(value, ",") {
-		if origin = strings.TrimSpace(origin); origin != "" {
+		// Origin headers never have a trailing slash; tolerate one in config.
+		if origin = strings.TrimRight(strings.TrimSpace(origin), "/"); origin != "" {
 			origins[origin] = true
 		}
 	}
