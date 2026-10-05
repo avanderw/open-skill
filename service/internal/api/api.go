@@ -39,6 +39,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/communities/{code}", s.handleGetCommunityByCode)
 	mux.HandleFunc("GET /api/communities/{code}/membership", s.handleMembership)
 	mux.HandleFunc("PUT /api/communities/{code}", s.handleUpdateCommunity)
+	mux.HandleFunc("DELETE /api/communities/{code}", s.handleDeleteCommunity)
 	mux.HandleFunc("GET /api/communities/{code}/members", s.handleMembers)
 	mux.HandleFunc("POST /api/communities/{code}/members/{user}/approve", s.handleApproveMember)
 	mux.HandleFunc("POST /api/communities/{code}/members/{user}/promote", s.handlePromoteMember)
@@ -239,6 +240,25 @@ func (s *Server) handleUpdateCommunity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, c)
+}
+
+func (s *Server) handleDeleteCommunity(w http.ResponseWriter, r *http.Request) {
+	actor, err := s.actorID(r)
+	if err != nil {
+		writeErr(w, http.StatusUnauthorized, "%v", err)
+		return
+	}
+	if err := s.store.DeleteCommunity(r.Context(), actor, r.PathValue("code")); err != nil {
+		if errors.Is(err, store.ErrForbidden) {
+			writeErr(w, http.StatusForbidden, "only the owner can delete a community")
+		} else if errors.Is(err, store.ErrNotFound) {
+			writeErr(w, http.StatusNotFound, "%v", err)
+		} else {
+			writeErr(w, http.StatusInternalServerError, "delete community: %v", err)
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (s *Server) handleApproveMember(w http.ResponseWriter, r *http.Request) {

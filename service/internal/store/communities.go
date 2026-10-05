@@ -196,6 +196,37 @@ func (s *Store) UpdateCommunity(ctx context.Context, id, name, mode string, draw
 	return nil
 }
 
+// DeleteCommunity permanently removes a community and everything scoped to it. Owner only.
+func (s *Store) DeleteCommunity(ctx context.Context, actorID, id string) error {
+	role, _, err := s.communityRoleAndOwner(ctx, id, actorID)
+	if err != nil {
+		return err
+	}
+	if role != "owner" {
+		return ErrForbidden
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	stmts := []string{
+		`DELETE FROM match_participants WHERE match_id IN (SELECT id FROM matches WHERE community_id = ?)`,
+		`DELETE FROM matches WHERE community_id = ?`,
+		`DELETE FROM ratings WHERE community_id = ?`,
+		`DELETE FROM community_integrations WHERE community_id = ?`,
+		`DELETE FROM community_join_requests WHERE community_id = ?`,
+		`DELETE FROM community_members WHERE community_id = ?`,
+		`DELETE FROM communities WHERE id = ?`,
+	}
+	for _, q := range stmts {
+		if _, err := tx.ExecContext(ctx, q, id); err != nil {
+			return fmt.Errorf("delete community: %w", err)
+		}
+	}
+	return tx.Commit()
+}
+
 // FindCommunityByCode looks up a community by its invite code.
 func (s *Store) FindCommunityByCode(ctx context.Context, code string) (*model.Community, error) {
 	var c model.Community

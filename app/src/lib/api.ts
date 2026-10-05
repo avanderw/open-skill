@@ -163,6 +163,7 @@ export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, b
 		demoteMember: (communityId: string, userId: string) => req<MemberMutationResult>(`/api/communities/${encodeURIComponent(communityId)}/members/${encodeURIComponent(userId)}/demote`, { method: 'POST' }),
 		removeMember: (communityId: string, userId: string) => req<MemberMutationResult>(`/api/communities/${encodeURIComponent(communityId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
 		findCommunity: (idOrCode: string) => req<Community>(`/api/communities/${encodeURIComponent(idOrCode)}`),
+		deleteCommunity: (id: string) => req<{ ok: boolean }>(`/api/communities/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 		updateCommunity: (id: string, body: { name: string; mode: 'open' | 'approval'; draws: boolean }) =>
 			req<Community>(`/api/communities/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
 		communityMembers: (id: string) => req<CommunityJoinRequest[]>(`/api/communities/${encodeURIComponent(id)}/members`),
