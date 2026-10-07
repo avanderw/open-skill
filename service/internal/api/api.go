@@ -55,6 +55,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/leaderboard", s.handleLeaderboard)
 	mux.HandleFunc("GET /api/leaderboard/modes", s.handleLeaderboardModes)
 	mux.HandleFunc("GET /api/profile/{id}", s.handleProfile)
+	mux.HandleFunc("PUT /api/profile/{id}", s.handleRenamePlayer)
 	mux.HandleFunc("GET /api/history", s.handleHistory)
 	mux.HandleFunc("POST /api/matches", s.handleReportMatch)
 	mux.HandleFunc("GET /api/matches/{id}", s.handleGetMatch)
@@ -519,6 +520,42 @@ func (s *Server) handleProfile(w http.ResponseWriter, r *http.Request) {
 		"player":  player,
 		"ratings": ratings,
 	})
+}
+
+func (s *Server) handleRenamePlayer(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.actorOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
+	var req struct {
+		Handle string `json:"handle"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad request: %v", err)
+		return
+	}
+	handle := strings.Join(strings.Fields(req.Handle), " ")
+	if handle == "" {
+		writeErr(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	if len([]rune(handle)) > maxHandleRunes {
+		writeErr(w, http.StatusBadRequest, "name must be at most %d characters", maxHandleRunes)
+		return
+	}
+	player, err := s.store.RenamePlayer(r.Context(), actor, r.PathValue("id"), handle)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeErr(w, http.StatusNotFound, "player not found")
+	case errors.Is(err, store.ErrForbidden):
+		writeErr(w, http.StatusForbidden, "you can only rename your own profile")
+	case errors.Is(err, store.ErrHandleTaken):
+		writeErr(w, http.StatusConflict, "that name is already taken")
+	case err != nil:
+		writeErr(w, http.StatusInternalServerError, "rename player: %v", err)
+	default:
+		writeJSON(w, http.StatusOK, player)
+	}
 }
 
 func (s *Server) handleReportMatch(w http.ResponseWriter, r *http.Request) {

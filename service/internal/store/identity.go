@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 
 	"open-skill/service/internal/model"
 )
@@ -50,6 +51,31 @@ func (s *Store) EnsureUser(ctx context.Context, userID, playerID, handle string)
 		candidate = fmt.Sprintf("%s-%d", handle, 1000+rand.IntN(9000))
 	}
 	return tx.Commit()
+}
+
+// ErrHandleTaken is returned when another player already uses the handle.
+var ErrHandleTaken = errors.New("handle already in use")
+
+// RenamePlayer changes a player's handle; only the owning user may do so.
+func (s *Store) RenamePlayer(ctx context.Context, actorID, playerID, handle string) (*model.Player, error) {
+	var owner string
+	err := s.db.QueryRowContext(ctx, `SELECT user_id FROM players WHERE id = ?`, playerID).Scan(&owner)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if owner != actorID {
+		return nil, ErrForbidden
+	}
+	if _, err := s.db.ExecContext(ctx, `UPDATE players SET handle = ? WHERE id = ?`, handle, playerID); err != nil {
+		if strings.Contains(strings.ToUpper(err.Error()), "UNIQUE") {
+			return nil, ErrHandleTaken
+		}
+		return nil, err
+	}
+	return &model.Player{ID: playerID, UserID: owner, Handle: handle}, nil
 }
 
 func (s *Store) PrimaryPlayerForUser(ctx context.Context, userID string) (*model.Player, error) {

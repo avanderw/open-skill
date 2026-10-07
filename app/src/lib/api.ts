@@ -184,6 +184,7 @@ export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, b
 			return req<MatchResult[]>(`/api/history?${params}`);
 		},
 		profile: (id: string) => req<Profile>(`/api/profile/${encodeURIComponent(id)}`),
+		renamePlayer: (id: string, handle: string) => req<Player>(`/api/profile/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ handle }) }),
 		match: (matchId: string) => req<MatchResult>(`/api/matches/${encodeURIComponent(matchId)}`),
 		reportMatch: (body: ReportMatchRequest) => req<MatchOutcome>('/api/matches', { method: 'POST', body: JSON.stringify(body) }),
 		updateMatch: (matchId: string, body: { participants: ReportMatchRequest['participants']; notes?: string }) =>
