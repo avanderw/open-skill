@@ -2,6 +2,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"open-skill/service/internal/model"
+	"open-skill/service/internal/notify"
 	"open-skill/service/internal/store"
 )
 
@@ -21,11 +24,12 @@ type Server struct {
 	auth     AuthConfig
 	users    knownUsers
 	stubUser string // demo-mode fallback user when no demo header is supplied
+	notifier *notify.Notifier
 }
 
 // New builds an API server for the given store.
 func New(st *store.Store, auth AuthConfig) *Server {
-	return &Server{store: st, auth: auth, stubUser: "u_demo"}
+	return &Server{store: st, auth: auth, stubUser: "u_demo", notifier: notify.New()}
 }
 
 // Handler returns the root http.Handler with all routes mounted.
@@ -335,7 +339,14 @@ func (s *Server) handleIntegration(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "integration: %v", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, i)
+	writeJSON(w, http.StatusOK, maskedIntegration(*i))
+}
+
+// maskedIntegration hides webhook secrets; they are write-only after saving.
+func maskedIntegration(i store.CommunityIntegration) store.CommunityIntegration {
+	i.Discord = notify.Mask(i.Discord)
+	i.Webhook = notify.Mask(i.Webhook)
+	return i
 }
 func (s *Server) handleUpdateIntegration(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.requireAdmin(w, r, r.PathValue("code")); !ok {
@@ -347,11 +358,68 @@ func (s *Server) handleUpdateIntegration(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	i.CommunityID = r.PathValue("code")
+	current, err := s.store.Integration(r.Context(), i.CommunityID)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "update integration: %v", err)
+		return
+	}
+	// Submitting the masked value back means "unchanged".
+	if i.Discord == notify.Mask(current.Discord) {
+		i.Discord = current.Discord
+	}
+	if i.Webhook == notify.Mask(current.Webhook) {
+		i.Webhook = current.Webhook
+	}
+	i.Discord, i.Webhook = strings.TrimSpace(i.Discord), strings.TrimSpace(i.Webhook)
+	if err := notify.ValidateURL(notify.Discord, i.Discord); err != nil {
+		writeErr(w, http.StatusBadRequest, "discord URL: %v", err)
+		return
+	}
+	if err := notify.ValidateURL(notify.Webhook, i.Webhook); err != nil {
+		writeErr(w, http.StatusBadRequest, "webhook URL: %v", err)
+		return
+	}
 	if err := s.store.UpdateIntegration(r.Context(), i); err != nil {
 		writeErr(w, http.StatusBadRequest, "update integration: %v", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, i)
+	writeJSON(w, http.StatusOK, maskedIntegration(i))
+}
+
+// announceMatch notifies the community's integrations in the background so a
+// slow endpoint never delays or fails match reporting.
+func (s *Server) announceMatch(communityID string, outcome *store.ReportOutcome) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		integration, err := s.store.Integration(ctx, communityID)
+		if err != nil || (integration.Discord == "" && integration.Webhook == "") {
+			return
+		}
+		community, err := s.store.FindCommunityByID(ctx, communityID)
+		if err != nil {
+			return
+		}
+		match, err := s.store.Match(ctx, outcome.MatchID)
+		if err != nil {
+			return
+		}
+		newRatings := map[string]float64{}
+		for _, d := range outcome.Deltas {
+			newRatings[d.PlayerID] = d.NewRating
+		}
+		event := notify.Match{
+			Event: "match.reported", CommunityID: communityID, CommunityName: community.Name,
+			MatchID: match.MatchID, Mode: string(match.Mode), PlayedAt: match.PlayedAt,
+		}
+		for _, p := range match.Participants {
+			event.Participants = append(event.Participants, notify.Participant{
+				PlayerID: p.PlayerID, Handle: p.Handle, Team: p.Team, Score: p.Score, Finish: p.Finish,
+				RatingDelta: p.RatingDelta, NewRating: newRatings[p.PlayerID],
+			})
+		}
+		s.notifier.Dispatch(ctx, integration.Discord, integration.Webhook, event)
+	}()
 }
 
 func (s *Server) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
@@ -481,6 +549,7 @@ func (s *Server) handleReportMatch(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "report match: %v", err)
 		return
 	}
+	s.announceMatch(req.CommunityID, outcome)
 	writeJSON(w, http.StatusCreated, outcome)
 }
 

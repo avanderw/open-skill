@@ -13,7 +13,7 @@
 	async function saveGeneral() { saving=true; message=''; try { const {api}=await import('$lib/api'); await api.updateCommunity(community.id,{name:name.trim(),mode,draws}); message='Community settings saved.';} catch(e){message=(e as Error).message;} finally{saving=false;} }
 	let confirmName = $state(''); let deleting = $state(false);
 	async function deleteCommunity() { if (confirmName !== community.name) return; deleting=true; message=''; try { const {api}=await import('$lib/api'); await api.deleteCommunity(community.id); await goto(`${base}/communities`); } catch(e){message=(e as Error).message; deleting=false;} }
-	async function saveIntegration() { saving=true; message=''; try { const {api}=await import('$lib/api'); await api.updateIntegration(community.id,{discord,webhook}); message='Integration settings saved.';} catch(e){message=(e as Error).message;} finally{saving=false;} }
+	async function saveIntegration() { saving=true; message=''; try { const {api}=await import('$lib/api'); const saved=await api.updateIntegration(community.id,{discord,webhook}); discord=saved.discord; webhook=saved.webhook; message='Integration settings saved.';} catch(e){message=(e as Error).message;} finally{saving=false;} }
 	async function loadMembers(){try{const {api}=await import('$lib/api'); members=await api.communityMembers(community.id);}catch(e){message=(e as Error).message}}
 	async function loadIntegration(){try{const {api}=await import('$lib/api'); const i=await api.integration(community.id); discord=i.discord; webhook=i.webhook;}catch(e){message=(e as Error).message}}
 	function selectTab(next:typeof tab){tab=next;message='';if(next==='members')loadMembers();if(next==='integrations')loadIntegration()}
