@@ -1,11 +1,8 @@
 import type { PageLoad } from './$types';
-import { createApi, type Community } from '$lib/api';
+import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 
-export const load: PageLoad = async ({ params, fetch }) => {
-	const api = createApi(fetch);
-	try {
-		return { community: await api.findCommunity(params.id) as Community };
-	} catch {
-		throw new Error('Community not found');
-	}
+// A community has no page of its own; the leaderboard is its home.
+export const load: PageLoad = ({ params }) => {
+	redirect(307, `${base}/leaderboard?communityId=${encodeURIComponent(params.id)}`);
 };

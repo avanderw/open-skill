@@ -7,8 +7,7 @@
 	import { setDebugProfile } from '$lib/debug-profiles';
 
 	const providers: { id: AuthProvider; label: string; copy: string; icon: string }[] = [
-		{ id: 'google', label: 'Continue with Google', copy: 'Use a familiar account to get started.', icon: 'G' },
-		{ id: 'github', label: 'Continue with GitHub', copy: 'Sign in with your developer identity.', icon: 'GH' }
+		{ id: 'google', label: 'Continue with Google', copy: 'Use a familiar account to get started.', icon: 'G' }
 	];
 
 	let email = $state('');

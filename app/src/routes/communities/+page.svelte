@@ -66,7 +66,7 @@
 				{:else}
 					<div class="communities-grid">
 						{#each communities as c}
-							<a href={`${base}/communities/${encodeURIComponent(c.id)}`} class="community-card">
+							<a href={`${base}/leaderboard?communityId=${encodeURIComponent(c.id)}`} class="community-card">
 								<div class="community-head">
 									<div class="community-title">
 										<span class="community-avatar">{short(c.name)}</span>

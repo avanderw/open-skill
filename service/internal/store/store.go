@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
@@ -37,7 +38,10 @@ func OpenRemote(url, authToken string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open libsql: %w", err)
 	}
-	return open(sql.OpenDB(foreignKeysConnector{connector}))
+	db := sql.OpenDB(foreignKeysConnector{connector})
+	// Turso drops idle HTTP connections; recycle before that happens.
+	db.SetConnMaxIdleTime(20 * time.Second)
+	return open(db)
 }
 
 func open(db *sql.DB) (*Store, error) {
@@ -54,6 +58,21 @@ func open(db *sql.DB) (*Store, error) {
 type foreignKeysConnector struct{ driver.Connector }
 
 func (c foreignKeysConnector) Connect(ctx context.Context) (driver.Conn, error) {
+	var err error
+	// Retry: a reused keep-alive connection closed by the server surfaces as EOF.
+	for attempt := 0; attempt < 3; attempt++ {
+		var conn driver.Conn
+		if conn, err = c.connect(ctx); err == nil {
+			return conn, nil
+		}
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, err
+}
+
+func (c foreignKeysConnector) connect(ctx context.Context) (driver.Conn, error) {
 	conn, err := c.Connector.Connect(ctx)
 	if err != nil {
 		return nil, err
