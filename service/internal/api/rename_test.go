@@ -2,14 +2,99 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"open-skill/service/internal/model"
 	"open-skill/service/internal/store"
 )
+
+func TestUnclaimedPlayerHTTPWorkflow(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	h := New(st, AuthConfig{Verifier: fakeVerifier{
+		"owner-token":   {UID: "owner", Name: "Owner"},
+		"visitor-token": {UID: "visitor", Name: "Visitor"},
+	}}).Handler()
+	request := func(method, path, body, token string, want int) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		res := httptest.NewRecorder()
+		h.ServeHTTP(res, req)
+		if res.Code != want {
+			t.Fatalf("%s %s: status=%d want=%d body=%s", method, path, res.Code, want, res.Body.String())
+		}
+		return res
+	}
+	request(http.MethodGet, "/api/me", "", "owner-token", http.StatusOK)
+	request(http.MethodGet, "/api/me", "", "visitor-token", http.StatusOK)
+	request(http.MethodPost, "/api/communities", `{"name":"Unclaimed workflow","mode":"open","draws":true}`, "", http.StatusUnauthorized)
+	response := request(http.MethodPost, "/api/communities", `{"name":"Unclaimed workflow","mode":"open","draws":true}`, "owner-token", http.StatusCreated)
+	var community model.Community
+	if err := json.Unmarshal(response.Body.Bytes(), &community); err != nil {
+		t.Fatal(err)
+	}
+	path := "/api/communities/" + community.ID + "/players"
+	request(http.MethodPost, path, `{"handle":"No account"}`, "", http.StatusUnauthorized)
+	request(http.MethodPost, path, `{"handle":"No account"}`, "visitor-token", http.StatusForbidden)
+	request(http.MethodPost, path, `{"handle":" "}`, "owner-token", http.StatusBadRequest)
+	request(http.MethodPost, path, `{"handle":"`+strings.Repeat("x", 65)+`"}`, "owner-token", http.StatusBadRequest)
+	response = request(http.MethodPost, path, `{"handle":"  No   account "}`, "owner-token", http.StatusCreated)
+	var player model.Player
+	if err := json.Unmarshal(response.Body.Bytes(), &player); err != nil {
+		t.Fatal(err)
+	}
+	if !player.Unclaimed || player.UserID != "" || player.CommunityID != community.ID {
+		t.Fatalf("player = %+v", player)
+	}
+	request(http.MethodPost, path, `{"handle":"No account"}`, "owner-token", http.StatusConflict)
+	request(http.MethodPut, "/api/profile/"+player.ID, `{"handle":"Hijacked"}`, "visitor-token", http.StatusForbidden)
+	request(http.MethodPost, "/api/matches", `{"communityId":"`+community.ID+`","participants":[{"playerId":"p_owner","score":1,"finish":-1},{"playerId":"`+player.ID+`","score":0,"finish":-1}]}`, "owner-token", http.StatusCreated)
+	claimPath := "/api/profile/" + player.ID + "/claims"
+	request(http.MethodPost, claimPath, "", "visitor-token", http.StatusForbidden)
+	request(http.MethodPost, "/api/communities/"+community.Code+"/join", "", "visitor-token", http.StatusOK)
+	request(http.MethodPost, claimPath, "", "visitor-token", http.StatusCreated)
+	request(http.MethodGet, "/api/communities/"+community.ID+"/player-claims", "", "", http.StatusUnauthorized)
+	request(http.MethodGet, "/api/communities/"+community.ID+"/player-claims", "", "visitor-token", http.StatusForbidden)
+	response = request(http.MethodGet, "/api/communities/"+community.ID+"/player-claims", "", "owner-token", http.StatusOK)
+	var queue []store.CommunityPlayerClaim
+	if err := json.Unmarshal(response.Body.Bytes(), &queue); err != nil || len(queue) != 1 || queue[0].PlayerID != player.ID {
+		t.Fatalf("claim queue = %+v, err = %v", queue, err)
+	}
+	request(http.MethodPost, claimPath+"/fb_visitor/approve", "", "visitor-token", http.StatusForbidden)
+	response = request(http.MethodPost, claimPath+"/fb_visitor/approve", "", "owner-token", http.StatusOK)
+	var approval struct {
+		PlayerID string `json:"playerId"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &approval); err != nil || approval.PlayerID != "p_visitor" {
+		t.Fatalf("merge approval = %+v, err = %v", approval, err)
+	}
+	response = request(http.MethodGet, "/api/profile/"+player.ID, "", "visitor-token", http.StatusOK)
+	var profile struct {
+		Player  model.Player   `json:"player"`
+		Ratings []model.Rating `json:"ratings"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &profile); err != nil {
+		t.Fatal(err)
+	}
+	games := 0
+	for _, row := range profile.Ratings {
+		games += row.Games
+	}
+	if profile.Player.ID != "p_visitor" || profile.Player.Unclaimed || profile.Player.UserID != "fb_visitor" || games != 1 {
+		t.Fatalf("claimed profile = %+v", profile)
+	}
+}
 
 func TestRenamePlayer(t *testing.T) {
 	st, err := store.Open(filepath.Join(t.TempDir(), "test.db"))

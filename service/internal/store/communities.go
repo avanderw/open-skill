@@ -217,6 +217,8 @@ func (s *Store) DeleteCommunity(ctx context.Context, actorID, id string) error {
 		`DELETE FROM community_integrations WHERE community_id = ?`,
 		`DELETE FROM community_join_requests WHERE community_id = ?`,
 		`DELETE FROM community_members WHERE community_id = ?`,
+		`DELETE FROM player_claim_requests WHERE player_id IN (SELECT id FROM players WHERE community_id = ?)`,
+		`UPDATE players SET community_id = NULL WHERE community_id = ?`,
 		`DELETE FROM communities WHERE id = ?`,
 	}
 	for _, q := range stmts {

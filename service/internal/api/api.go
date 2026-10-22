@@ -40,11 +40,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/communities", s.handleListCommunities)
 	mux.HandleFunc("GET /api/communities/browse", s.handleBrowseCommunities)
 	mux.HandleFunc("POST /api/communities", s.handleCreateCommunity)
+	mux.HandleFunc("POST /api/communities/{code}/players", s.handleCreateUnclaimedPlayer)
 	mux.HandleFunc("GET /api/communities/{code}", s.handleGetCommunityByCode)
 	mux.HandleFunc("GET /api/communities/{code}/membership", s.handleMembership)
 	mux.HandleFunc("PUT /api/communities/{code}", s.handleUpdateCommunity)
 	mux.HandleFunc("DELETE /api/communities/{code}", s.handleDeleteCommunity)
 	mux.HandleFunc("GET /api/communities/{code}/members", s.handleMembers)
+	mux.HandleFunc("GET /api/communities/{code}/player-claims", s.handleCommunityPlayerClaims)
 	mux.HandleFunc("POST /api/communities/{code}/members/{user}/approve", s.handleApproveMember)
 	mux.HandleFunc("POST /api/communities/{code}/members/{user}/promote", s.handlePromoteMember)
 	mux.HandleFunc("POST /api/communities/{code}/members/{user}/demote", s.handleDemoteMember)
@@ -56,6 +58,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/leaderboard/modes", s.handleLeaderboardModes)
 	mux.HandleFunc("GET /api/profile/{id}", s.handleProfile)
 	mux.HandleFunc("PUT /api/profile/{id}", s.handleRenamePlayer)
+	mux.HandleFunc("GET /api/profile/{id}/claims", s.handlePlayerClaims)
+	mux.HandleFunc("POST /api/profile/{id}/claims", s.handleRequestPlayerClaim)
+	mux.HandleFunc("POST /api/profile/{id}/claims/{user}/approve", s.handleApprovePlayerClaim)
+	mux.HandleFunc("DELETE /api/profile/{id}/claims/{user}", s.handleRejectPlayerClaim)
 	mux.HandleFunc("GET /api/history", s.handleHistory)
 	mux.HandleFunc("POST /api/matches", s.handleReportMatch)
 	mux.HandleFunc("GET /api/matches/{id}", s.handleGetMatch)
@@ -558,6 +564,116 @@ func (s *Server) handleRenamePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) handleCommunityPlayerClaims(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.requireAdmin(w, r, r.PathValue("code"))
+	if !ok {
+		return
+	}
+	claims, err := s.store.CommunityPlayerClaims(r.Context(), actor, r.PathValue("code"))
+	if err != nil {
+		writePlayerClaimErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, claims)
+}
+
+func (s *Server) handlePlayerClaims(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.actorOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
+	claims, err := s.store.PlayerClaims(r.Context(), actor, r.PathValue("id"))
+	if err != nil {
+		writePlayerClaimErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, claims)
+}
+
+func (s *Server) handleRequestPlayerClaim(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.actorOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
+	if err := s.store.RequestPlayerClaim(r.Context(), actor, r.PathValue("id")); err != nil {
+		writePlayerClaimErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"ok": true})
+}
+
+func (s *Server) handleApprovePlayerClaim(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.actorOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
+	playerID, err := s.store.ApprovePlayerClaim(r.Context(), actor, r.PathValue("id"), r.PathValue("user"))
+	if err != nil {
+		writePlayerClaimErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "playerId": playerID})
+}
+
+func (s *Server) handleRejectPlayerClaim(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.actorOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
+	if err := s.store.RejectPlayerClaim(r.Context(), actor, r.PathValue("id"), r.PathValue("user")); err != nil {
+		writePlayerClaimErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func writePlayerClaimErr(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, store.ErrForbidden):
+		writeErr(w, http.StatusForbidden, "community membership is required to request a claim; only community admins can approve claims")
+	case errors.Is(err, store.ErrNotFound):
+		writeErr(w, http.StatusNotFound, "player, pending claim, or community membership not found")
+	case errors.Is(err, store.ErrAlreadyClaimed):
+		writeErr(w, http.StatusConflict, "this player has already been claimed")
+	case errors.Is(err, store.ErrPlayerMergeConflict):
+		writeErr(w, http.StatusConflict, "%v", err)
+	default:
+		writeErr(w, http.StatusInternalServerError, "player claim: %v", err)
+	}
+}
+
+func (s *Server) handleCreateUnclaimedPlayer(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.actorOrUnauthorized(w, r)
+	if !ok {
+		return
+	}
+	var req struct {
+		Handle string `json:"handle"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad request: %v", err)
+		return
+	}
+	handle := strings.Join(strings.Fields(req.Handle), " ")
+	if handle == "" || len([]rune(handle)) > maxHandleRunes {
+		writeErr(w, http.StatusBadRequest, "name must be between 1 and %d characters", maxHandleRunes)
+		return
+	}
+	player, err := s.store.CreateUnclaimedPlayer(r.Context(), actor, r.PathValue("code"), handle)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeErr(w, http.StatusNotFound, "community not found")
+	case errors.Is(err, store.ErrForbidden):
+		writeErr(w, http.StatusForbidden, "you must be a community member to add players")
+	case errors.Is(err, store.ErrHandleTaken):
+		writeErr(w, http.StatusConflict, "that name is already taken; select the existing player or use a different name")
+	case err != nil:
+		writeErr(w, http.StatusInternalServerError, "create player: %v", err)
+	default:
+		writeJSON(w, http.StatusCreated, player)
+	}
+}
+
 func (s *Server) handleReportMatch(w http.ResponseWriter, r *http.Request) {
 	actor, actorErr := s.actorID(r)
 	if actorErr != nil {
@@ -610,12 +726,13 @@ func (s *Server) handleUpdateMatch(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Participants []store.Participant `json:"participants"`
 		Notes        string              `json:"notes"`
+		PlayedAt     string              `json:"playedAt"`
 	}
 	if err := readJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad request: %v", err)
 		return
 	}
-	outcome, err := s.store.UpdateMatch(r.Context(), actor, r.PathValue("id"), req.Participants, req.Notes)
+	outcome, err := s.store.UpdateMatch(r.Context(), actor, r.PathValue("id"), req.Participants, req.Notes, req.PlayedAt)
 	if err != nil {
 		writeMatchErr(w, "update match", err)
 		return

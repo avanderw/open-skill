@@ -2,8 +2,8 @@
 //
 // Identity model (per product decision):
 //   - A user is an account identity supplied by the (stubbed) auth layer.
-//   - A player is a competitive handle owned by a user. A user may own many
-//     players (handles), each with its own ratings across modes.
+//   - A player is a competitive handle, either claimed by a user or unclaimed
+//     within a community. A user may own many players, each with its own ratings.
 //
 // Rating model (per product decision):
 //   - Ratings are materialized per community and mode as a projection of the
@@ -28,13 +28,15 @@ type User struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-// Player is a competitive handle owned by a user.
+// Player is a competitive handle, optionally claimed by a user.
 type Player struct {
-	ID        string `json:"id"`
-	UserID    string `json:"userId"`
-	Handle    string `json:"handle"`
-	Avatar    string `json:"avatar"` // derived initials for the mockups
-	CreatedAt string `json:"createdAt"`
+	ID          string `json:"id"`
+	UserID      string `json:"userId"`
+	Unclaimed   bool   `json:"unclaimed"`
+	CommunityID string `json:"communityId,omitempty"`
+	Handle      string `json:"handle"`
+	Avatar      string `json:"avatar"` // derived initials for the mockups
+	CreatedAt   string `json:"createdAt"`
 }
 
 // Rating is the materialized community-scoped rating for a player in one mode.

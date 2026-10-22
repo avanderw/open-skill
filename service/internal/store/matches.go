@@ -30,7 +30,7 @@ type ReportMatchRequest struct {
 	CommunityID  string        `json:"communityId"`
 	Participants []Participant `json:"participants"`
 	Notes        string        `json:"notes"`
-	PlayedAt     string        `json:"playedAt,omitempty"` // RFC3339; default now
+	PlayedAt     string        `json:"playedAt,omitempty"`
 }
 
 // Participant is one competitor in a reported match.
@@ -57,10 +57,15 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 	if req.CommunityID == "" {
 		return nil, fmt.Errorf("communityId is required")
 	}
+	playedAt, err := normalizePlayedAt(req.PlayedAt)
+	if err != nil {
+		return nil, err
+	}
 	mode, normalized, err := normalizeReport(req.Participants)
 	if err != nil {
 		return nil, err
 	}
+	matchID := newID("m")
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -68,11 +73,13 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 	}
 	defer tx.Rollback()
 
-	var drawsAllowed, isMember bool
+	var drawsAllowed, isMember, hasLaterMatch bool
 	if err := tx.QueryRowContext(ctx, `
 		SELECT c.draws,
-		       c.owner_id = ? OR EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = c.id AND cm.user_id = ?)
-		FROM communities c WHERE c.id = ?`, actorID, actorID, req.CommunityID).Scan(&drawsAllowed, &isMember); err != nil {
+		       c.owner_id = ? OR EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = c.id AND cm.user_id = ?),
+		       EXISTS(SELECT 1 FROM matches m WHERE m.community_id = c.id AND
+		           (m.played_at > ? OR (m.played_at = ? AND m.id > ?)))
+		FROM communities c WHERE c.id = ?`, actorID, actorID, playedAt, playedAt, matchID, req.CommunityID).Scan(&drawsAllowed, &isMember, &hasLaterMatch); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("community %q: %w", req.CommunityID, ErrNotFound)
 		}
@@ -88,12 +95,6 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 		return nil, fmt.Errorf("draws are not allowed in this community")
 	}
 
-	matchID := newID("m")
-	playedAt := req.PlayedAt
-	if playedAt == "" {
-		// Same format as SQLite's datetime('now').
-		playedAt = time.Now().UTC().Format("2006-01-02 15:04:05")
-	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO matches (id, community_id, mode, played_at, notes)
 		VALUES (?, ?, ?, ?, ?)`, matchID, req.CommunityID, string(mode), playedAt, req.Notes); err != nil {
@@ -113,11 +114,33 @@ func (s *Store) reportMatch(ctx context.Context, actorID string, req ReportMatch
 	if err := writeRatings(ctx, tx, req.CommunityID, book); err != nil {
 		return nil, err
 	}
+	if hasLaterMatch {
+		if err := recomputeCommunity(ctx, tx, req.CommunityID); err != nil {
+			return nil, err
+		}
+		deltas, err = matchDeltas(ctx, tx, req.CommunityID, matchID, mode)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return &ReportOutcome{MatchID: matchID, Mode: mode, Deltas: deltas}, nil
+}
+
+func normalizePlayedAt(value string) (string, error) {
+	if value == "" {
+		return time.Now().UTC().Format("2006-01-02 15:04:05"), nil
+	}
+	for _, layout := range []string{time.DateOnly, time.RFC3339, "2006-01-02 15:04:05"} {
+		parsed, err := time.Parse(layout, value)
+		if err == nil {
+			return parsed.UTC().Format("2006-01-02 15:04:05"), nil
+		}
+	}
+	return "", fmt.Errorf("playedAt must be a valid date (YYYY-MM-DD) or timestamp")
 }
 
 type ratingKey struct {
@@ -292,7 +315,7 @@ func writeRatings(ctx context.Context, tx *sql.Tx, communityID string, book rati
 func validateCommunityParticipants(ctx context.Context, tx *sql.Tx, communityID string, participants []Participant) error {
 	placeholders := strings.TrimRight(strings.Repeat("?,", len(participants)), ",")
 	args := make([]any, 0, len(participants)+1)
-	args = append(args, communityID)
+	args = append(args, communityID, communityID)
 	for _, participant := range participants {
 		args = append(args, participant.PlayerID)
 	}
@@ -302,7 +325,7 @@ func validateCommunityParticipants(ctx context.Context, tx *sql.Tx, communityID 
 			       SELECT 1
 			       FROM community_members cm
 			       WHERE cm.user_id = p.user_id AND cm.community_id = ?
-		       )
+		       ) OR (p.user_id IS NULL AND p.community_id = ?)
 		FROM players p
 		WHERE p.id IN (`+placeholders+`)`, args...)
 	if err != nil {
@@ -329,7 +352,7 @@ func validateCommunityParticipants(ctx context.Context, tx *sql.Tx, communityID 
 			return fmt.Errorf("player %q: %w", participant.PlayerID, ErrUnknownPlayer)
 		}
 		if !isEligible {
-			return fmt.Errorf("player %q is not owned by a member of community %q: %w", participant.PlayerID, communityID, ErrIneligibleParticipant)
+			return fmt.Errorf("player %q is not eligible for community %q: %w", participant.PlayerID, communityID, ErrIneligibleParticipant)
 		}
 	}
 	return nil
@@ -351,6 +374,7 @@ type MatchHistory struct {
 }
 type ParticipantHistory struct {
 	PlayerID    string  `json:"playerId"`
+	Unclaimed   bool    `json:"unclaimed"`
 	Handle      string  `json:"handle"`
 	Team        string  `json:"team"`
 	Score       float64 `json:"score"`
@@ -373,8 +397,8 @@ func (s *Store) History(ctx context.Context, playerID, communityID string, mode 
 		WHERE 1 = 1`
 	args := []any{}
 	if playerID != "" {
-		query += ` AND filter_mp.player_id = ?`
-		args = append(args, playerID)
+		query += ` AND filter_mp.player_id = COALESCE((SELECT player_id FROM player_redirects WHERE old_player_id = ?), ?)`
+		args = append(args, playerID, playerID)
 	}
 	if communityID != "" {
 		query += ` AND m.community_id = ?`
@@ -387,7 +411,7 @@ func (s *Store) History(ctx context.Context, playerID, communityID string, mode 
 	query += ` ORDER BY m.played_at DESC LIMIT ? OFFSET ?)
 		SELECT sm.id, sm.community_id, sm.mode, sm.played_at,
 		       mp.player_id, COALESCE(p.handle, mp.player_id), COALESCE(mp.team, ''), mp.score,
-		       COALESCE(mp.finish, -1), mp.rating_delta
+		       COALESCE(mp.finish, -1), mp.rating_delta, p.user_id IS NULL
 		FROM selected_matches sm
 		JOIN match_participants mp ON mp.match_id = sm.id
 		LEFT JOIN players p ON p.id = mp.player_id
@@ -404,7 +428,7 @@ func (s *Store) History(ctx context.Context, playerID, communityID string, mode 
 		var h MatchHistory
 		var p ParticipantHistory
 		if err := rows.Scan(&h.MatchID, &h.CommunityID, &h.Mode, &h.PlayedAt,
-			&p.PlayerID, &p.Handle, &p.Team, &p.Score, &p.Finish, &p.RatingDelta); err != nil {
+			&p.PlayerID, &p.Handle, &p.Team, &p.Score, &p.Finish, &p.RatingDelta, &p.Unclaimed); err != nil {
 			return nil, err
 		}
 		index, ok := indexes[h.MatchID]

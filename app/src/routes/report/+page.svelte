@@ -5,11 +5,22 @@
 	import { api, type LeaderboardRow, type MatchOutcome } from '$lib/api';
 
 	let { data } = $props();
-	const players = (data.players as LeaderboardRow[] | null) ?? [];
+	let createdPlayers = $state<LeaderboardRow[]>([]);
+	const players = $derived([...(data.players as LeaderboardRow[] | null ?? []), ...createdPlayers.filter((created) => !data.players?.some((player: LeaderboardRow) => player.playerId === created.playerId))]);
 	const communityId = data.communityId as string;
 	const community = data.community as import('$lib/api').Community | null;
 	const editing = data.match as import('$lib/api').MatchResult | null;
+	function today() {
+		const now = new Date();
+		return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+	}
+	let playedDate = $state(editing?.playedAt.slice(0, 10) || today());
+	const reviewDate = $derived(playedDate ? new Date(`${playedDate}T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '');
 	let playerSearch = $state('');
+	let newPlayerName = $state('');
+	let creatingPlayer = $state(false);
+	let createError = $state('');
+	let createdMessage = $state('');
 	let draggedId = $state<string | null>(null);
 	let error = $state('');
 	let outcome = $state<MatchOutcome | null>(null);
@@ -57,10 +68,36 @@
 	const leaderboardHref = communityId ? `${base}/leaderboard?communityId=${encodeURIComponent(communityId)}` : `${base}/leaderboard`;
 
 	function playerName(id: string) { return players.find((player) => player.playerId === id)?.handle ?? 'Unknown player'; }
+	function isUnclaimed(id: string) { return players.find((player) => player.playerId === id)?.unclaimed ?? false; }
 	function playerRating(id: string) { return Math.round(players.find((player) => player.playerId === id)?.rating ?? 0); }
 	function playerAvatar(id: string) { return playerName(id).split(/\s+/).map((word) => word[0] ?? '').slice(0, 2).join('').toUpperCase(); }
 	function avatar(name: string) { return name.split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase()).join(''); }
 	function friendlyMode() { return teamNames.length ? `${teamNames.length} teams` : selected.length > 2 ? 'Free-for-all' : '1v1'; }
+
+	async function createPlayer(event: SubmitEvent) {
+		event.preventDefault();
+		if (creatingPlayer) return;
+		const name = newPlayerName.trim();
+		if (!name) { createError = 'Player name is required.'; return; }
+		creatingPlayer = true;
+		createError = '';
+		createdMessage = '';
+		try {
+			const player = await api.createUnclaimedPlayer(communityId, name);
+			createdPlayers = [...createdPlayers, {
+				playerId: player.id, handle: player.handle, avatar: player.avatar, unclaimed: player.unclaimed,
+				rating: 1500, rank: 0, games: 0, wins: 0, losses: 0, trend: 0, isYou: false
+			}];
+			toggle(player.id);
+			playerSearch = '';
+			newPlayerName = '';
+			createdMessage = `${player.handle} added as unclaimed.`;
+		} catch (err) {
+			createError = (err as Error).message;
+		} finally {
+			creatingPlayer = false;
+		}
+	}
 
 	function toggle(id: string) {
 		if (selected.includes(id)) {
@@ -185,6 +222,7 @@
 
 	async function submit() {
 		if (!communityId) { error = 'Select a community first.'; return; }
+		if (!playedDate) { error = 'Select the date the match was played.'; return; }
 		if (selected.length < 2) { error = 'Select at least two players.'; return; }
 		if (teamNames.length && teamNames.some((team) => playersForTeam(team).length === 0)) { error = 'Each team needs at least one participant.'; return; }
 		if (usingPlaces && sideKeys.some((key) => !places[key])) { error = `Give every ${teamNames.length ? 'team' : 'player'} a finishing place, or clear them all to report a simple win.`; return; }
@@ -207,13 +245,13 @@
 				};
 			});
 			outcome = editing
-				? await api.updateMatch(editing.matchId, { participants })
-				: await api.reportMatch({ communityId, participants });
+				? await api.updateMatch(editing.matchId, { participants, playedAt: playedDate })
+				: await api.reportMatch({ communityId, participants, playedAt: playedDate });
 			sessionStorage.setItem('open-skill.last-report', JSON.stringify({
 				communityId,
 				mode: outcome.mode,
 				standings: standings().map((standing) => ({ place: standing.place, side: standing.side, won: standing.won })),
-				deltas: outcome.deltas.map((delta) => ({ ...delta, handle: playerName(delta.playerId) }))
+				deltas: outcome.deltas.map((delta) => ({ ...delta, handle: playerName(delta.playerId), unclaimed: isUnclaimed(delta.playerId) }))
 			}));
 			await invalidateAll();
 			await goto(`${base}/leaderboard?communityId=${encodeURIComponent(communityId)}&mode=${outcome.mode}`);
@@ -235,6 +273,10 @@
 
 		<section class="card form-shell">
 			<div class="community-banner"><span class="community-avatar">{avatar(community?.name ?? 'Community')}</span><div><p class="label-caps">Community</p><strong>{community?.name ?? communityId}</strong><p class="hint">{community?.draws ? 'Draws allowed' : 'No draws'} · {players.length} players on the roster</p></div><a class="btn btn-ghost" href={`${base}/communities`}>Change</a></div>
+			<div class="match-date">
+				<label for="played-date">Date played</label>
+				<input id="played-date" class="text-input" type="date" required bind:value={playedDate} disabled={submitting} onchange={() => (review = false)} />
+			</div>
 			<div>
 				<p class="section-title">Participants</p>
 				<p class="hint">Select players from the roster. Add teams when the match was played by sides, then drag participants between teams.</p>
@@ -250,7 +292,7 @@
 						<label class="player-option" class:sel={selected.includes(p.playerId)}>
 							<input type="checkbox" checked={selected.includes(p.playerId)} onchange={() => toggle(p.playerId)} />
 							<span class="avatar">{avatar(p.handle)}</span>
-							<span class="opt-name">{p.handle}</span>
+							<span class="opt-name">{p.handle}{#if p.unclaimed} <span class="unclaimed-badge">Unclaimed</span>{/if}</span>
 							<span class="opt-rating muted">{Math.round(p.rating)}</span>
 							{#if selected.includes(p.playerId) && teamNames.length === 0}
 								<span class="place-input" onclick={(event) => event.stopPropagation()}>
@@ -265,8 +307,20 @@
 								{/if}
 							{/if}
 						</label>
+					{:else}
+						<p class="hint">No matching players.</p>
 					{/each}
 				</div>
+
+				<form class="create-player" onsubmit={createPlayer}>
+					<label for="new-player-name">New unclaimed player</label>
+					<div class="create-player-fields">
+						<input id="new-player-name" class="text-input" placeholder="Player name" maxlength="64" required bind:value={newPlayerName} disabled={creatingPlayer || submitting} />
+						<button class="btn btn-secondary" type="submit" disabled={creatingPlayer || submitting || !newPlayerName.trim()}>{creatingPlayer ? 'Creating...' : 'Create unclaimed player'}</button>
+					</div>
+					{#if createError}<p class="alert-err" role="alert">{createError}</p>{/if}
+					<p class="hint" role="status">{createdMessage}</p>
+				</form>
 
 				{#if teamNames.length}
 					<div class="team-grid">
@@ -292,7 +346,7 @@
 										{#each playersForTeam(team) as id}
 											<div class="team-player" draggable="true" ondragstart={() => (draggedId = id)} ondragend={() => (draggedId = null)}>
 												<span class="avatar">{playerAvatar(id)}</span>
-												<span>{playerName(id)}</span>
+												<span>{playerName(id)}{#if isUnclaimed(id)} <span class="unclaimed-badge">Unclaimed</span>{/if}</span>
 											</div>
 										{/each}
 									</div>
@@ -317,6 +371,7 @@
 					<div class="review-chips">
 						<span class="chip chip-mode">{friendlyMode()}</span>
 						<span class="chip">{community?.name ?? communityId}</span>
+						<span class="chip">{reviewDate}</span>
 						<span class="chip">{selected.length} players</span>
 						<span class="chip" class:chip-draw={winnerSides().size === 0}>{matchResultLabel()}</span>
 					</div>
@@ -329,9 +384,9 @@
 								<div class="standing-body">
 									<strong>{standing.side}</strong>
 									{#if teamNames.length}
-										<div class="standing-players">{#each standing.players as id}<span class="standing-player"><span class="avatar">{playerAvatar(id)}</span>{playerName(id)} <span class="muted">{playerRating(id)}</span></span>{/each}</div>
+										<div class="standing-players">{#each standing.players as id}<span class="standing-player"><span class="avatar">{playerAvatar(id)}</span>{playerName(id)}{#if isUnclaimed(id)} <span class="unclaimed-badge">Unclaimed</span>{/if} <span class="muted">{playerRating(id)}</span></span>{/each}</div>
 									{:else}
-										<span class="muted">rating {playerRating(standing.players[0])}</span>
+										<span class="muted">{#if isUnclaimed(standing.players[0])}<span class="unclaimed-badge">Unclaimed</span> {/if}rating {playerRating(standing.players[0])}</span>
 									{/if}
 								</div>
 							</li>
@@ -342,7 +397,7 @@
 
 			<div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
 				<a class="btn btn-secondary" href={editing ? `${base}/history?communityId=${encodeURIComponent(communityId)}` : leaderboardHref}>Cancel</a>
-				<button class="btn btn-primary" disabled={submitting} onclick={() => (review ? submit() : (review = true))}>
+				<button class="btn btn-primary" disabled={submitting || creatingPlayer} onclick={() => (review ? submit() : (review = true))}>
 					{submitting ? 'Saving…' : review ? (editing ? 'Save changes' : 'Confirm report') : (editing ? 'Review changes' : 'Review report')}
 				</button>
 			</div>
@@ -351,6 +406,18 @@
 </div>
 
 <style>
+	.match-date { display:grid; gap:8px; margin-bottom:24px; }
+	.match-date label { font-size:13px; font-weight:700; }
+	.match-date input { width:100%; max-width:240px; min-width:0; color-scheme:dark; }
+	.create-player { display:grid; gap:8px; margin-bottom:24px; padding-top:16px; border-top:1px solid var(--theme-border); }
+	.create-player > label { font-size:13px; font-weight:700; }
+	.create-player-fields { display:flex; flex-wrap:wrap; gap:10px; }
+	.create-player-fields input { flex:1 1 180px; min-width:0; }
+	.create-player-fields button { white-space:normal; }
+	.create-player .hint { margin:0; }
+	.player-option { flex-wrap:wrap; }
+	.opt-name { min-width:0; overflow-wrap:anywhere; }
+	.team-player > span:last-child { min-width:0; overflow-wrap:anywhere; }
 	.community-banner { display:flex; align-items:center; gap:14px; padding:16px 20px; margin-bottom:18px; border:1px solid var(--theme-border); border-radius:14px; background:rgba(255,255,255,.03); }
 	.community-banner div { flex:1; }
 	.community-banner strong { display:block; font-size:18px; }
@@ -370,7 +437,7 @@
 	.player-option.sel { border-color: rgba(240, 90, 26, 0.5); background: rgba(240, 90, 26, 0.06); }
 	.player-option input[type='checkbox'] { accent-color: var(--theme-accent); width: 18px; height: 18px; flex-shrink: 0; }
 	.avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #b83c08, var(--brand-primary)); display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 800; flex-shrink: 0; }
-	.opt-name { flex: 1; font-size: 14px; font-weight: 700; }
+	.opt-name { flex: 1 1 140px; min-width:120px; font-size: 14px; font-weight: 700; }
 	.opt-rating { font-size: 12px; }
 	.winner-toggle { display:inline-flex; align-items:center; gap:6px; padding:6px 8px; border-radius:999px; background:rgba(255,255,255,.06); color:var(--theme-text); font-size:12px; font-weight:800; }
 	.winner-toggle input { accent-color: var(--theme-accent); }

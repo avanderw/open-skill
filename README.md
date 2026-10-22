@@ -40,7 +40,8 @@ Migration plans and Kanban files remain as implementation history:
 - The app signs in with Firebase Auth (Google/GitHub) and sends `Authorization: Bearer <id token>`; config comes from `VITE_FIREBASE_*` (see `app/.env.example`). Dev builds can set `VITE_DEMO_AUTH=1` to use the demo identity header instead. The service verifies tokens for `OPEN_SKILL_FIREBASE_PROJECT_ID` and only trusts `X-Demo-User` when `OPEN_SKILL_DEMO_AUTH=1` (local development only); it refuses to start with neither set.
 - Rating mode is derived from submitted participants: `1v1`, `team`, or `ffa`.
 - Ratings are scoped by `community_id`, `player_id`, and mode.
-- A participant is eligible when the owning user is a member of the reporting community.
+- A participant is eligible when the owning user is a member of the reporting community, or when the player is unclaimed and was created for that community.
+- The report page can create and select unclaimed players without accounts. Views label them as unclaimed. Community admins can approve claims from profiles or community settings; approval merges match history into the claimant's existing profile, recalculates ratings, and removes the standalone player. Old profile links redirect to the merged profile. Overlapping appearances in the same match must be corrected before merging.
 - Community leaderboard reads return the top rows plus the current user's row when available.
 
 ## Validation

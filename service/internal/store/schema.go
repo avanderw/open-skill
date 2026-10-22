@@ -14,8 +14,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS players (
 	id          TEXT PRIMARY KEY,
-	user_id     TEXT NOT NULL REFERENCES users(id),
+	user_id     TEXT REFERENCES users(id),
 	handle      TEXT NOT NULL UNIQUE,
+	community_id TEXT REFERENCES communities(id),
 	created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -35,6 +36,18 @@ CREATE TABLE IF NOT EXISTS community_members (
 	role         TEXT NOT NULL DEFAULT 'member', -- 'owner'|'admin'|'member'
 	joined_at    TEXT NOT NULL DEFAULT (datetime('now')),
 	PRIMARY KEY (community_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS player_claim_requests (
+	player_id TEXT NOT NULL REFERENCES players(id),
+	user_id TEXT NOT NULL REFERENCES users(id),
+	created_at TEXT NOT NULL DEFAULT (datetime('now')),
+	PRIMARY KEY (player_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS player_redirects (
+	old_player_id TEXT PRIMARY KEY,
+	player_id TEXT NOT NULL REFERENCES players(id)
 );
 
 -- Materialized skill rating per community, player, and mode (projection of the

@@ -63,6 +63,9 @@
 	}
 
 	function when(value: string) {
+		if (value.endsWith(' 00:00:00')) {
+			return new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+		}
 		const parsed = new Date(value.includes('T') ? value : value.replace(' ', 'T') + 'Z');
 		return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
 	}
@@ -141,6 +144,7 @@
 											{#each side.players as participant}
 												<a class="chip" href={`${base}/profile/${encodeURIComponent(participant.playerId)}`}>
 													{participant.handle ?? participant.playerId}
+													{#if participant.unclaimed}<span class="unclaimed-badge">Unclaimed</span>{/if}
 													<b class:down={participant.ratingDelta < 0}>{participant.ratingDelta >= 0 ? '+' : ''}{Math.round(participant.ratingDelta * 10) / 10}</b>
 												</a>
 											{/each}

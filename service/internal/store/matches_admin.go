@@ -23,7 +23,7 @@ func (s *Store) Match(ctx context.Context, matchID string) (*MatchHistory, error
 	}
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT mp.player_id, COALESCE(p.handle, mp.player_id), COALESCE(mp.team, ''), mp.score,
-		       COALESCE(mp.finish, -1), mp.rating_delta
+		       COALESCE(mp.finish, -1), mp.rating_delta, p.user_id IS NULL
 		FROM match_participants mp
 		LEFT JOIN players p ON p.id = mp.player_id
 		WHERE mp.match_id = ?
@@ -34,7 +34,7 @@ func (s *Store) Match(ctx context.Context, matchID string) (*MatchHistory, error
 	defer rows.Close()
 	for rows.Next() {
 		var p ParticipantHistory
-		if err := rows.Scan(&p.PlayerID, &p.Handle, &p.Team, &p.Score, &p.Finish, &p.RatingDelta); err != nil {
+		if err := rows.Scan(&p.PlayerID, &p.Handle, &p.Team, &p.Score, &p.Finish, &p.RatingDelta, &p.Unclaimed); err != nil {
 			return nil, err
 		}
 		out.Participants = append(out.Participants, p)
@@ -75,10 +75,17 @@ func (s *Store) DeleteMatch(ctx context.Context, actorID, matchID string) (strin
 
 // UpdateMatch replaces a match's participants and result, then rebuilds the
 // community's ratings so later matches account for the correction.
-func (s *Store) UpdateMatch(ctx context.Context, actorID, matchID string, participants []Participant, notes string) (*ReportOutcome, error) {
+func (s *Store) UpdateMatch(ctx context.Context, actorID, matchID string, participants []Participant, notes string, playedAt ...string) (*ReportOutcome, error) {
 	mode, _, err := normalizeReport(participants)
 	if err != nil {
 		return nil, err
+	}
+	date := ""
+	if len(playedAt) > 0 && playedAt[0] != "" {
+		date, err = normalizePlayedAt(playedAt[0])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -97,7 +104,7 @@ func (s *Store) UpdateMatch(ctx context.Context, actorID, matchID string, partic
 	if err := validateCommunityParticipants(ctx, tx, communityID, participants); err != nil {
 		return nil, err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE matches SET mode = ?, notes = ? WHERE id = ?`, string(mode), notes, matchID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE matches SET mode = ?, notes = ?, played_at = COALESCE(NULLIF(?, ''), played_at) WHERE id = ?`, string(mode), notes, date, matchID); err != nil {
 		return nil, fmt.Errorf("update match: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM match_participants WHERE match_id = ?`, matchID); err != nil {

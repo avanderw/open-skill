@@ -101,6 +101,58 @@ func applySchema(db *sql.DB) error {
 	if _, err := db.Exec(schema); err != nil {
 		return fmt.Errorf("apply schema: %w", err)
 	}
+	return migratePlayerOwnership(db)
+}
+
+func migratePlayerOwnership(db *sql.DB) error {
+	ctx := context.Background()
+	rows, err := db.QueryContext(ctx, `PRAGMA table_info(players)`)
+	if err != nil {
+		return fmt.Errorf("inspect player ownership schema: %w", err)
+	}
+	needsMigration := false
+	for rows.Next() {
+		var columnID, notNull, primaryKey int
+		var name, columnType string
+		var defaultValue sql.NullString
+		if err := rows.Scan(&columnID, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
+			rows.Close()
+			return err
+		}
+		if name == "user_id" && notNull == 1 {
+			needsMigration = true
+		}
+	}
+	readErr := rows.Err()
+	rows.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if !needsMigration {
+		return nil
+	}
+	if _, err := db.ExecContext(ctx, `
+		PRAGMA foreign_keys = OFF;
+		BEGIN IMMEDIATE;
+		CREATE TABLE players_migrated (
+			id TEXT PRIMARY KEY,
+			user_id TEXT REFERENCES users(id),
+			handle TEXT NOT NULL UNIQUE,
+			community_id TEXT REFERENCES communities(id),
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+		INSERT INTO players_migrated (id, user_id, handle, created_at) SELECT id, user_id, handle, created_at FROM players;
+		DROP TABLE players;
+		ALTER TABLE players_migrated RENAME TO players;
+		CREATE TEMP TABLE player_migration_integrity (violations INTEGER CHECK (violations = 0));
+		INSERT INTO player_migration_integrity SELECT COUNT(*) FROM pragma_foreign_key_check;
+		DROP TABLE player_migration_integrity;
+		COMMIT;
+		PRAGMA foreign_keys = ON;`); err != nil {
+		db.ExecContext(ctx, `ROLLBACK`)
+		db.ExecContext(ctx, `PRAGMA foreign_keys = ON`)
+		return fmt.Errorf("migrate player ownership: %w", err)
+	}
 	return nil
 }
 

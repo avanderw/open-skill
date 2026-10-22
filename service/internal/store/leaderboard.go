@@ -11,17 +11,18 @@ import (
 )
 
 type LeaderboardRow struct {
-	Rank     int     `json:"rank"`
-	PlayerID string  `json:"playerId"`
-	Handle   string  `json:"handle"`
-	Avatar   string  `json:"avatar"`
-	Rating   float64 `json:"rating"`
-	Games    int     `json:"games"`
-	Wins     int     `json:"wins"`
-	Losses   int     `json:"losses"`
-	IsYou    bool    `json:"isYou"`
-	Trend    float64 `json:"trend"`          // rating change over the player's last trendWindow matches
-	Role     string  `json:"role,omitempty"` // community role: owner | admin | member
+	Rank      int     `json:"rank"`
+	PlayerID  string  `json:"playerId"`
+	Handle    string  `json:"handle"`
+	Avatar    string  `json:"avatar"`
+	Rating    float64 `json:"rating"`
+	Games     int     `json:"games"`
+	Wins      int     `json:"wins"`
+	Losses    int     `json:"losses"`
+	IsYou     bool    `json:"isYou"`
+	Unclaimed bool    `json:"unclaimed"`
+	Trend     float64 `json:"trend"`          // rating change over the player's last trendWindow matches
+	Role      string  `json:"role,omitempty"` // community role: owner | admin | member
 }
 
 // trendWindow is how many recent matches feed the leaderboard trend. Three is
@@ -98,7 +99,8 @@ func (s *Store) Leaderboard(ctx context.Context, mode model.Mode, limit int, use
 		)
 		SELECT player_id, handle, 1500 + (ordinal * 60), games, wins, losses, trend,
 		       (SELECT COUNT(*) + 1 FROM player_scores higher WHERE higher.ordinal > player_scores.ordinal) AS rank,
-		       CASE WHEN user_id = ? THEN 1 ELSE 0 END AS is_you
+		       CASE WHEN user_id = ? THEN 1 ELSE 0 END AS is_you,
+		       user_id IS NULL
 		FROM player_scores`
 	args = append(args, userID)
 	switch sortBy {
@@ -118,7 +120,7 @@ func (s *Store) Leaderboard(ctx context.Context, mode model.Mode, limit int, use
 	for rows.Next() {
 		var row LeaderboardRow
 		var isYou int
-		if err := rows.Scan(&row.PlayerID, &row.Handle, &row.Rating, &row.Games, &row.Wins, &row.Losses, &row.Trend, &row.Rank, &isYou); err != nil {
+		if err := rows.Scan(&row.PlayerID, &row.Handle, &row.Rating, &row.Games, &row.Wins, &row.Losses, &row.Trend, &row.Rank, &isYou, &row.Unclaimed); err != nil {
 			return nil, err
 		}
 		row.Avatar = initials(row.Handle)
@@ -155,14 +157,14 @@ func (s *Store) communityLeaderboard(ctx context.Context, mode model.Mode, limit
 		       COALESCE(r.games, 0), COALESCE(r.wins, 0), COALESCE(r.losses, 0),
 		       COALESCE(t.trend, 0),
 		       CASE WHEN p.user_id = ? THEN 1 ELSE 0 END AS is_you,
-		       cm.role
-		FROM community_members cm
-		JOIN players p ON p.user_id = cm.user_id
+		       COALESCE(cm.role, ''), p.user_id IS NULL
+		FROM players p
+		LEFT JOIN community_members cm ON p.user_id = cm.user_id AND cm.community_id = ?
 		LEFT JOIN ratings r
-		       ON r.community_id = cm.community_id AND r.player_id = p.id AND r.mode = ?
+		       ON r.community_id = ? AND r.player_id = p.id AND r.mode = ?
 		LEFT JOIN trend t ON t.player_id = p.id
-		WHERE cm.community_id = ?`
-	args := []any{communityID, string(mode), trendWindow, rating.DefaultOpenSkillMu, rating.DefaultOpenSkillSigma, userID, string(mode), communityID}
+		WHERE (cm.user_id IS NOT NULL OR (p.user_id IS NULL AND p.community_id = ?))`
+	args := []any{communityID, string(mode), trendWindow, rating.DefaultOpenSkillMu, rating.DefaultOpenSkillSigma, userID, communityID, communityID, string(mode), communityID}
 	if q != "" {
 		query += ` AND p.handle LIKE ? ESCAPE '\'`
 		escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q)
@@ -181,7 +183,7 @@ func (s *Store) communityLeaderboard(ctx context.Context, mode model.Mode, limit
 		var row LeaderboardRow
 		var ordinal float64
 		var isYou int
-		if err := rows.Scan(&row.PlayerID, &row.Handle, &ordinal, &row.Games, &row.Wins, &row.Losses, &row.Trend, &isYou, &row.Role); err != nil {
+		if err := rows.Scan(&row.PlayerID, &row.Handle, &ordinal, &row.Games, &row.Wins, &row.Losses, &row.Trend, &isYou, &row.Role, &row.Unclaimed); err != nil {
 			return nil, err
 		}
 		row.Rating = 1500 + ordinal*60
@@ -241,7 +243,7 @@ func hasYou(rows []LeaderboardRow) bool {
 
 func (s *Store) PlayerByHandle(ctx context.Context, handle string) (*model.Player, error) {
 	var p model.Player
-	err := s.db.QueryRowContext(ctx, `SELECT id, user_id, handle FROM players WHERE handle = ?`, handle).Scan(&p.ID, &p.UserID, &p.Handle)
+	err := s.db.QueryRowContext(ctx, `SELECT id, COALESCE(user_id, ''), handle, user_id IS NULL, COALESCE(community_id, '') FROM players WHERE handle = ?`, handle).Scan(&p.ID, &p.UserID, &p.Handle, &p.Unclaimed, &p.CommunityID)
 	if err != nil {
 		return nil, err
 	}
@@ -250,19 +252,21 @@ func (s *Store) PlayerByHandle(ctx context.Context, handle string) (*model.Playe
 
 func (s *Store) Profile(ctx context.Context, playerID string) (*model.Player, []model.Rating, error) {
 	var p model.Player
-	if err := s.db.QueryRowContext(ctx, `SELECT id, user_id, handle FROM players WHERE id = ?`, playerID).Scan(&p.ID, &p.UserID, &p.Handle); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT id, COALESCE(user_id, ''), handle, user_id IS NULL, COALESCE(community_id, '') FROM players
+		WHERE id = COALESCE((SELECT player_id FROM player_redirects WHERE old_player_id = ?), ?)`, playerID, playerID).Scan(&p.ID, &p.UserID, &p.Handle, &p.Unclaimed, &p.CommunityID); err != nil {
 		return nil, nil, err
 	}
+	playerID = p.ID
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT r.community_id, COALESCE(c.name, r.community_id), r.player_id, r.mode,
 		       1500 + ((r.mu - 3 * r.sigma) * 60), r.sigma, r.games, r.wins, r.losses, r.draws,
 		       COALESCE(r.last_played, ''),
 		       (SELECT COUNT(*) + 1
-		          FROM community_members cm
-		          JOIN players p2 ON p2.user_id = cm.user_id
+		          FROM players p2
+		          LEFT JOIN community_members cm ON p2.user_id = cm.user_id AND cm.community_id = r.community_id
 		          LEFT JOIN ratings r2
-		                 ON r2.community_id = cm.community_id AND r2.player_id = p2.id AND r2.mode = r.mode
-		         WHERE cm.community_id = r.community_id
+		                 ON r2.community_id = r.community_id AND r2.player_id = p2.id AND r2.mode = r.mode
+		         WHERE (cm.user_id IS NOT NULL OR (p2.user_id IS NULL AND p2.community_id = r.community_id))
 		           AND p2.id <> r.player_id
 		           AND (COALESCE(r2.mu, ?) - 3 * COALESCE(r2.sigma, ?)) > (r.mu - 3 * r.sigma)) AS rank
 		FROM ratings r

@@ -3,9 +3,13 @@ import { createApi, type Community } from '$lib/api';
 
 export const load: PageLoad = async ({ params, fetch }) => {
 	const api = createApi(fetch);
-	try {
-		return { community: await api.findCommunity(params.id) as Community };
-	} catch {
-		throw new Error('Community not found');
-	}
+	const [community, membership] = await Promise.all([
+		api.findCommunity(params.id),
+		api.membership(params.id)
+	]);
+	return {
+		community: community as Community,
+		canManage: membership.canManage,
+		claims: membership.canManage ? await api.communityPlayerClaims(params.id) : []
+	};
 };

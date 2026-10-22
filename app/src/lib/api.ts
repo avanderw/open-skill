@@ -14,6 +14,7 @@ export interface LeaderboardRow {
 	wins: number;
 	losses: number;
 	isYou: boolean;
+	unclaimed: boolean;
 	trend: number;
 	role?: 'owner' | 'admin' | 'member';
 }
@@ -51,6 +52,8 @@ export interface MemberMutationResult {
 export interface Player {
 	id: string;
 	userId: string;
+	unclaimed: boolean;
+	communityId?: string;
 	handle: string;
 	avatar: string;
 	createdAt: string;
@@ -76,6 +79,19 @@ export interface Profile {
 	ratings: Rating[];
 }
 
+export interface PlayerClaimRequest {
+	userId: string;
+	display: string;
+	createdAt: string;
+}
+
+export interface CommunityPlayerClaim extends PlayerClaimRequest {
+	playerId: string;
+	handle: string;
+	targetPlayerId: string;
+	targetHandle: string;
+}
+
 export interface MatchDelta {
 	playerId: string;
 	mode: Mode;
@@ -93,6 +109,7 @@ export interface ReportMatchRequest {
 	communityId: string;
 	participants: { playerId: string; team: string; score: number; finish: number }[];
 	notes?: string;
+	playedAt?: string;
 }
 
 export interface DemoUser { user: string; handle: string; playerId: string }
@@ -102,7 +119,7 @@ export interface MatchResult {
 	communityId: string;
 	mode: Mode;
 	playedAt: string;
-	participants: { playerId: string; handle?: string; team: string; score: number; finish: number; ratingDelta: number }[];
+	participants: { playerId: string; handle?: string; unclaimed: boolean; team: string; score: number; finish: number; ratingDelta: number }[];
 }
 
 // Empty base keeps requests same-origin (Vite proxy in dev, nginx in Docker).
@@ -156,6 +173,8 @@ export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, b
 		communities: () => req<Community[]>('/api/communities'),
 		createCommunity: (body: { name: string; mode: string; draws: boolean }) =>
 			req<Community>('/api/communities', { method: 'POST', body: JSON.stringify(body) }),
+		createUnclaimedPlayer: (communityId: string, handle: string) =>
+			req<Player>(`/api/communities/${encodeURIComponent(communityId)}/players`, { method: 'POST', body: JSON.stringify({ handle }) }),
 		browseCommunities: () => req<Community[]>('/api/communities/browse'),
 		membership: (id: string) => req<{ communityId: string; status: MembershipStatus; canManage: boolean }>(`/api/communities/${encodeURIComponent(id)}/membership`),
 		approveMember: (communityId: string, userId: string) => req<MemberMutationResult>(`/api/communities/${encodeURIComponent(communityId)}/members/${encodeURIComponent(userId)}/approve`, { method: 'POST' }),
@@ -167,6 +186,7 @@ export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, b
 		updateCommunity: (id: string, body: { name: string; mode: 'open' | 'approval'; draws: boolean }) =>
 			req<Community>(`/api/communities/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
 		communityMembers: (id: string) => req<CommunityJoinRequest[]>(`/api/communities/${encodeURIComponent(id)}/members`),
+		communityPlayerClaims: (id: string) => req<CommunityPlayerClaim[]>(`/api/communities/${encodeURIComponent(id)}/player-claims`),
 		integration: (id: string) => req<{ communityId: string; discord: string; webhook: string }>(`/api/communities/${encodeURIComponent(id)}/integrations`),
 		updateIntegration: (id: string, body: { discord: string; webhook: string }) => req<{ communityId: string; discord: string; webhook: string }>(`/api/communities/${encodeURIComponent(id)}/integrations`, { method: 'PUT', body: JSON.stringify(body) }),
 		joinCommunity: (code: string) =>
@@ -184,10 +204,14 @@ export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, b
 			return req<MatchResult[]>(`/api/history?${params}`);
 		},
 		profile: (id: string) => req<Profile>(`/api/profile/${encodeURIComponent(id)}`),
+		playerClaims: (id: string) => req<PlayerClaimRequest[]>(`/api/profile/${encodeURIComponent(id)}/claims`),
+		requestPlayerClaim: (id: string) => req<{ ok: boolean }>(`/api/profile/${encodeURIComponent(id)}/claims`, { method: 'POST' }),
+		approvePlayerClaim: (id: string, userId: string) => req<{ ok: boolean; playerId: string }>(`/api/profile/${encodeURIComponent(id)}/claims/${encodeURIComponent(userId)}/approve`, { method: 'POST' }),
+		rejectPlayerClaim: (id: string, userId: string) => req<{ ok: boolean }>(`/api/profile/${encodeURIComponent(id)}/claims/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
 		renamePlayer: (id: string, handle: string) => req<Player>(`/api/profile/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ handle }) }),
 		match: (matchId: string) => req<MatchResult>(`/api/matches/${encodeURIComponent(matchId)}`),
 		reportMatch: (body: ReportMatchRequest) => req<MatchOutcome>('/api/matches', { method: 'POST', body: JSON.stringify(body) }),
-		updateMatch: (matchId: string, body: { participants: ReportMatchRequest['participants']; notes?: string }) =>
+		updateMatch: (matchId: string, body: { participants: ReportMatchRequest['participants']; notes?: string; playedAt?: string }) =>
 			req<MatchOutcome>(`/api/matches/${encodeURIComponent(matchId)}`, { method: 'PUT', body: JSON.stringify(body) }),
 		deleteMatch: (matchId: string) =>
 			req<{ ok: boolean; communityId: string }>(`/api/matches/${encodeURIComponent(matchId)}`, { method: 'DELETE' })
