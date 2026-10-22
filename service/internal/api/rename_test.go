@@ -79,6 +79,14 @@ func TestUnclaimedPlayerHTTPWorkflow(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &approval); err != nil || approval.PlayerID != "p_visitor" {
 		t.Fatalf("merge approval = %+v, err = %v", approval, err)
 	}
+	response = request(http.MethodGet, "/api/communities/"+community.ID+"/player-claims", "", "owner-token", http.StatusOK)
+	if err := json.Unmarshal(response.Body.Bytes(), &queue); err != nil || len(queue) != 0 {
+		t.Fatalf("community claims after approval = %+v, err = %v", queue, err)
+	}
+	var remainingClaims int
+	if err := st.DB().QueryRowContext(context.Background(), "SELECT COUNT(*) FROM player_claim_requests WHERE player_id = ?", player.ID).Scan(&remainingClaims); err != nil || remainingClaims != 0 {
+		t.Fatalf("claims after approval = %d, err = %v", remainingClaims, err)
+	}
 	response = request(http.MethodGet, "/api/profile/"+player.ID, "", "visitor-token", http.StatusOK)
 	var profile struct {
 		Player  model.Player   `json:"player"`
