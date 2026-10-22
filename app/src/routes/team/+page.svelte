@@ -2,12 +2,14 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import type { LeaderboardRow } from '$lib/api';
+	import { buildTeams } from '$lib/team-builder';
 
 	let { data } = $props();
 	const communityId = data.communityId as string | null;
 	const players = (data.players as LeaderboardRow[] | null) ?? [];
 	const communities = (data.communities as import('$lib/api').Community[] | null) ?? [];
 	function chooseCommunity(id: string) { window.location.href = `${base}/team?communityId=${encodeURIComponent(id)}`; }
+	function chooseRatingMode(mode: string) { window.location.href = `${base}/team?communityId=${encodeURIComponent(communityId ?? '')}&mode=${encodeURIComponent(mode)}`; }
 	let teamCount = $state(2);
 	let playersPerTeam = $state(2);
 	let selected = $state<string[]>(players.slice(0, 4).map((player) => player.playerId));
@@ -17,22 +19,11 @@
 
 	const totalRequired = $derived(teamCount * playersPerTeam);
 	const selectedPlayers = $derived(players.filter((player) => selected.includes(player.playerId)));
-	const teams = $derived(buildTeams(selectedPlayers, teamCount, seed));
-	const valid = $derived(selectedPlayers.length === totalRequired && totalRequired >= 4);
+	const teams = $derived(buildTeams(selectedPlayers, teamCount, playersPerTeam, seed));
+	const valid = $derived(Number.isInteger(playersPerTeam) && playersPerTeam >= 1 && playersPerTeam <= 10 && selectedPlayers.length === totalRequired);
 
 	function avatar(name: string) { return name.split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase()).join(''); }
 	function toggle(id: string) { selected = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]; generated = false; error = ''; }
-	function buildTeams(pool: LeaderboardRow[], count: number, rotation: number) {
-		const groups = Array.from({ length: count }, (_, index) => ({ players: [] as LeaderboardRow[], total: 0, index }));
-		const ordered = [...pool].sort((a, b) => b.rating - a.rating);
-		for (const [index, player] of ordered.entries()) {
-			groups.sort((a, b) => a.players.length - b.players.length || a.total - b.total || a.index - b.index);
-			const target = groups[(rotation + index) % groups.length];
-			target.players.push(player);
-			target.total += player.rating;
-		}
-		return groups;
-	}
 	function generate() { if (!valid) { error = `Select exactly ${totalRequired} players (${teamCount} teams × ${playersPerTeam}).`; generated = false; return; } error = ''; generated = true; }
 	function regenerate() { seed += 1; generate(); }
 	function reportTeams() { const payload = teams.flatMap((team, i) => team.players.map((player) => [player.playerId, `Team ${i + 1}`])); goto(`${base}/report?teams=${encodeURIComponent(JSON.stringify(payload))}${communityId ? `&communityId=${encodeURIComponent(communityId)}` : ''}`); }
@@ -44,11 +35,13 @@
 	<section class="card hero"><p class="label-caps">Team builder</p><h1>Build balanced teams</h1><p>{communityId ? 'Build a matchup from this community’s players.' : 'Select players and generate a fair matchup.'} Ratings are distributed to minimize team differences.</p></section>
 	<section class="card community-picker"><label for="team-community">Community</label><select id="team-community" value={communityId || ''} onchange={(event) => chooseCommunity((event.target as HTMLSelectElement).value)}><option value="">Select a community</option>{#each communities as c}<option value={c.id}>{c.name}</option>{/each}</select>{#if !communityId}<p class="alert">Select a community to load its players.</p>{/if}</section>
 	<section class="builder-grid">
+		<label class="rating-mode" for="rating-mode">Rating mode<select id="rating-mode" value={data.mode} onchange={(event) => chooseRatingMode(event.currentTarget.value)}><option value="1v1">1v1</option><option value="team">Team</option><option value="ffa">Free-for-all</option></select></label>
 		<div class="card panel"><div class="section-head"><div><h2>Available players</h2><p class="muted subtitle">{selectedPlayers.length} selected · {players.length} available</p></div></div>{#if players.length === 0}<div class="empty"><h3>No players available</h3><p class="muted">This community needs players before teams can be built.</p></div>{:else}<div class="player-list">{#each players as player}<label class="player-row" class:selected={selected.includes(player.playerId)}><input type="checkbox" checked={selected.includes(player.playerId)} onchange={() => toggle(player.playerId)} /><span class="avatar">{avatar(player.handle)}</span><span class="player-name">{player.handle}{#if player.unclaimed} <span class="unclaimed-badge">Unclaimed</span>{/if}<small>Rating: {Math.round(player.rating)} · {player.games} games</small></span></label>{/each}</div>{/if}</div>
 		<div class="card panel"><h2>Configuration</h2><p class="muted subtitle">Choose the roster shape, then generate teams.</p><div class="config"><label for="team-count">Number of teams<select id="team-count" bind:value={teamCount} onchange={() => (generated = false)}><option value={2}>2 teams</option><option value={3}>3 teams</option><option value={4}>4 teams</option></select></label><label for="players-team">Players per team<input id="players-team" type="number" min="1" max="10" bind:value={playersPerTeam} oninput={() => (generated = false)} /></label></div><p class="requirement">Requires exactly <strong>{totalRequired}</strong> selected players.</p>{#if error}<p class="alert">{error}</p>{/if}<button class="btn btn-primary generate" onclick={generate}>Generate teams</button></div>
 	</section>
 	{#if generated}<section class="card results"><div class="results-head"><div><p class="label-caps">Generated teams</p><h2>Balanced matchup</h2></div><button class="btn btn-secondary" onclick={regenerate}>Regenerate</button></div><div class="balance"><span>Difference</span><strong>{Math.round(Math.max(...teams.map((t) => t.total)) - Math.min(...teams.map((t) => t.total)))} rating points</strong></div><div class="teams">{#each teams as team, index}<div class="team-card"><div class="team-head"><strong>Team {index + 1}</strong><span>{Math.round(team.total)} total · {Math.round(team.total / team.players.length)} avg</span></div>{#each team.players as player}<div class="roster-row"><span>{player.handle}{#if player.unclaimed} <span class="unclaimed-badge">Unclaimed</span>{/if}</span><span class="muted">{Math.round(player.rating)}</span></div>{/each}</div>{/each}</div><button class="btn btn-primary" onclick={reportTeams}>Use teams in report match →</button></section>{/if}
 </div></div>
 <style>
+.rating-mode{grid-column:1 / -1;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700}.rating-mode select{padding:10px;border:1px solid var(--theme-border);border-radius:8px;background:var(--theme-bg);color:var(--theme-text)}
 .community-picker{padding:16px 20px}.community-picker label{display:block;font-weight:800;font-size:13px;margin-bottom:8px}.community-picker select{width:100%;max-width:520px;padding:10px;border:1px solid var(--theme-border);border-radius:10px;background:rgba(255,255,255,.04);color:var(--theme-text)}.page-inner{display:flex;flex-direction:column;gap:18px;max-width:1080px}.back{align-self:flex-start}.hero,.panel,.results{padding:28px}.hero h1{font-size:clamp(32px,5vw,48px);line-height:1.05;margin-bottom:10px}.hero p:last-child{color:var(--theme-text-muted);max-width:640px}.label-caps{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--theme-accent);margin-bottom:8px}.builder-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.panel h2,.results h2{font-size:22px;margin-bottom:4px}.subtitle{font-size:13px;margin-bottom:16px}.player-list{border:1px solid var(--theme-border);border-radius:16px;overflow:auto;max-height:480px}.player-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--theme-border);cursor:pointer}.player-row:last-child{border-bottom:0}.player-row.selected{background:rgba(240,90,26,.08)}.player-row input{accent-color:var(--theme-accent)}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#b83c08,var(--brand-primary));color:#fff;font-size:12px;font-weight:800}.player-name{font-size:14px;font-weight:700}.player-name small{display:block;color:var(--brand-muted);font-size:12px;font-weight:400;margin-top:3px}.config{display:grid;gap:14px}.config label{display:grid;gap:7px;font-size:12px;font-weight:800;color:var(--brand-muted);text-transform:uppercase;letter-spacing:.08em}.config select,.config input{padding:11px;border:1px solid var(--theme-border);border-radius:10px;background:rgba(255,255,255,.04);color:var(--theme-text)}.requirement{padding:12px;border:1px solid var(--theme-border);border-radius:10px;color:var(--theme-text-muted);font-size:13px;margin:18px 0}.generate{width:100%}.alert{padding:12px;border-radius:10px;color:var(--danger);background:var(--danger-bg);border:1px solid var(--danger-border);font-size:13px;margin-bottom:14px}.empty{text-align:center;padding:50px 18px}.results-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.balance{display:flex;justify-content:space-between;gap:12px;padding:14px;border-radius:12px;background:rgba(240,90,26,.08);border:1px solid rgba(240,90,26,.25);margin:16px 0;font-size:13px}.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px}.team-card{padding:16px;border:1px solid var(--theme-border);border-radius:14px;background:rgba(255,255,255,.03)}.team-head{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--theme-border);padding-bottom:10px;margin-bottom:4px}.team-head span{font-size:11px;color:var(--brand-muted)}.roster-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px}.roster-row:last-child{border-bottom:0}@media(max-width:760px){.builder-grid{grid-template-columns:1fr}.results-head{flex-direction:column}}
 </style>
