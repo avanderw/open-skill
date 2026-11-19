@@ -63,6 +63,28 @@ distinguish app download/startup, Firebase restoration, and destination loading.
 Development server compilation and dependency optimization can inflate startup;
 use a production build when measuring deployed performance.
 
+### Reporting consecutive matches
+
+After reviewing a new match, choose **Save & log another** to stay on the report
+page, or **Save & view leaderboard** to navigate once after saving. Editing an
+existing match still saves changes and opens the leaderboard.
+
+The repeat-entry flow shows the saved standings and server-returned rating changes,
+keeps the community, played date, selected players, and teams, and clears winners
+and finishing places. **Change players** clears participant selection without
+reloading the roster. Team/FFA results do not overwrite the roster's 1v1 ratings.
+Newly created unclaimed players remain available for the next match.
+
+Saving disables the match controls and prevents duplicate in-flight submissions.
+A failed save preserves the draft. A saved match is not submitted again when
+retrying leaderboard navigation; its confirmation is passed through typed SvelteKit
+navigation state rather than session storage. If destination data loading fails,
+the leaderboard error page confirms the match was saved and offers a read-only
+retry. Report and leaderboard pages load
+independent API reads concurrently, and reporting does not invalidate the report
+page before navigation. These changes do not alter backend match ordering or
+rating recalculation.
+
 ## Building
 
 To create a production version of your app:

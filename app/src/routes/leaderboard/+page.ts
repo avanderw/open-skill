@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
-import type { Mode, LeaderboardRow, Community } from '$lib/api';
+import type { Mode, Community } from '$lib/api';
 import { createApi } from '$lib/api';
 
 export const load: PageLoad = async ({ url, fetch }) => {
@@ -22,10 +22,12 @@ export const load: PageLoad = async ({ url, fetch }) => {
 		}
 		redirect(307, `${base}/communities`);
 	}
-	const rows: LeaderboardRow[] = await api.leaderboard(mode, { q: q || undefined, sort: sort || undefined, full: full || undefined, communityId });
-	const availableModes: Mode[] = await api.leaderboardModes(communityId).catch(() => []);
-	const community: Community | null = await api.findCommunity(communityId).catch(() => null);
-	const membership = await api.membership(communityId);
+	const [rows, availableModes, community, membership] = await Promise.all([
+		api.leaderboard(mode, { q: q || undefined, sort: sort || undefined, full: full || undefined, communityId }),
+		api.leaderboardModes(communityId).catch((): Mode[] => []),
+		api.findCommunity(communityId).catch(() => null),
+		api.membership(communityId)
+	]);
 	if (community && membership) community.membership = membership.status;
 	return { mode, rows, communityId, community, availableModes, full: full === '1' };
 };

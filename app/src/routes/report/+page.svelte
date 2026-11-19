@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto } from '$app/navigation';
+	import { tick } from 'svelte';
 	import { base } from '$app/paths';
 	import { api, type LeaderboardRow, type MatchOutcome } from '$lib/api';
 
 	let { data } = $props();
 	let createdPlayers = $state<LeaderboardRow[]>([]);
-	const players = $derived([...(data.players as LeaderboardRow[] | null ?? []), ...createdPlayers.filter((created) => !data.players?.some((player: LeaderboardRow) => player.playerId === created.playerId))]);
+	let reportedRatings = $state<Record<string, number>>({});
+	const players = $derived([...(data.players as LeaderboardRow[] | null ?? []), ...createdPlayers.filter((created) => !data.players?.some((player: LeaderboardRow) => player.playerId === created.playerId))]
+		.map((player) => ({ ...player, rating: reportedRatings[player.playerId] ?? player.rating })));
 	const communityId = data.communityId as string;
 	const community = data.community as import('$lib/api').Community | null;
 	const editing = data.match as import('$lib/api').MatchResult | null;
@@ -23,7 +26,12 @@
 	let createdMessage = $state('');
 	let draggedId = $state<string | null>(null);
 	let error = $state('');
-	let outcome = $state<MatchOutcome | null>(null);
+	let savedReport = $state<App.PageState['reportedMatch']>();
+	let reportSaved = $state(false);
+	let navigationError = $state('');
+	let openingLeaderboard = $state(false);
+	let savedPanel = $state<HTMLElement>();
+	let searchInput = $state<HTMLInputElement>();
 	let submitting = $state(false);
 	let review = $state(false);
 
@@ -76,7 +84,7 @@
 
 	async function createPlayer(event: SubmitEvent) {
 		event.preventDefault();
-		if (creatingPlayer) return;
+		if (creatingPlayer || submitting || reportSaved) return;
 		const name = newPlayerName.trim();
 		if (!name) { createError = 'Player name is required.'; return; }
 		creatingPlayer = true;
@@ -149,6 +157,7 @@
 	}
 
 	function assignPlayerToTeam(id: string, team: string) {
+		if (submitting || reportSaved || openingLeaderboard) return;
 		teams = { ...teams, [id]: team };
 		review = false;
 	}
@@ -220,7 +229,44 @@
 			}));
 	}
 
-	async function submit() {
+	async function prepareNextMatch(changePlayers = false) {
+		if (editing || submitting || openingLeaderboard) return;
+		if (changePlayers) {
+			selected = [];
+			teams = {};
+		}
+		playerWinners = Object.fromEntries(selected.map((id) => [id, false]));
+		winningTeam = null;
+		places = {};
+		review = false;
+		reportSaved = false;
+		error = '';
+		navigationError = '';
+		playerSearch = '';
+		if (changePlayers) {
+			await tick();
+			searchInput?.focus();
+		}
+	}
+
+	async function viewLeaderboard() {
+		if (!savedReport || openingLeaderboard) return;
+		openingLeaderboard = true;
+		navigationError = '';
+		try {
+			await goto(`${base}/leaderboard?communityId=${encodeURIComponent(communityId)}&mode=${savedReport.mode}`, {
+				state: { reportedMatch: $state.snapshot(savedReport) }
+			});
+		} catch (err) {
+			console.error('Match saved, but leaderboard navigation failed.', err);
+			navigationError = 'Your match was saved, but we could not open the leaderboard. Try opening it again; do not resubmit the match.';
+		} finally {
+			openingLeaderboard = false;
+		}
+	}
+
+	async function submit(destination: 'another' | 'leaderboard') {
+		if (submitting || creatingPlayer || reportSaved || openingLeaderboard) return;
 		if (!communityId) { error = 'Select a community first.'; return; }
 		if (!playedDate) { error = 'Select the date the match was played.'; return; }
 		if (selected.length < 2) { error = 'Select at least two players.'; return; }
@@ -229,7 +275,10 @@
 		if (!usingPlaces && winnerSides().size === 0 && community?.draws === false) { error = 'This community does not allow draws. Select a winner before submitting.'; return; }
 		submitting = true;
 		error = '';
-		outcome = null;
+		savedReport = undefined;
+		navigationError = '';
+		let outcome: MatchOutcome;
+		const savedStandings = standings().map((standing) => ({ place: standing.place, side: standing.side, won: standing.won }));
 		try {
 			const participants = selected.map((id) => {
 				const key = teamNames.length ? teams[id] : id;
@@ -247,17 +296,32 @@
 			outcome = editing
 				? await api.updateMatch(editing.matchId, { participants, playedAt: playedDate })
 				: await api.reportMatch({ communityId, participants, playedAt: playedDate });
-			sessionStorage.setItem('open-skill.last-report', JSON.stringify({
-				communityId,
-				mode: outcome.mode,
-				standings: standings().map((standing) => ({ place: standing.place, side: standing.side, won: standing.won })),
-				deltas: outcome.deltas.map((delta) => ({ ...delta, handle: playerName(delta.playerId), unclaimed: isUnclaimed(delta.playerId) }))
-			}));
-			await invalidateAll();
-			await goto(`${base}/leaderboard?communityId=${encodeURIComponent(communityId)}&mode=${outcome.mode}`);
-		} catch (e) { error = (e as Error).message; } finally { submitting = false; }
+		} catch (e) {
+			error = (e as Error).message;
+			return;
+		} finally {
+			submitting = false;
+		}
+		savedReport = {
+			...outcome,
+			communityId,
+			playedAt: playedDate,
+			standings: savedStandings,
+			deltas: outcome.deltas.map((delta) => ({ ...delta, handle: playerName(delta.playerId), unclaimed: isUnclaimed(delta.playerId) }))
+		};
+		reportSaved = true;
+		// The roster displays 1v1 ratings; team/FFA outcomes must not overwrite those.
+		for (const delta of outcome.deltas) {
+			if (delta.mode === '1v1') reportedRatings[delta.playerId] = delta.newRating;
+		}
+		if (destination === 'another' && !editing) await prepareNextMatch();
+		await tick();
+		savedPanel?.focus();
+		if (destination === 'leaderboard') await viewLeaderboard();
 	}
 </script>
+
+<svelte:head><title>{editing ? 'Edit match' : 'Report match'} — Open-Skill</title></svelte:head>
 
 <div class="page-wrap">
 	<div class="page-inner">
@@ -271,8 +335,33 @@
 			<p>{editing ? 'Correct the participants or the finishing order. Saving replays every match in this community so all ratings stay consistent.' : 'Select participants, add teams when needed, drag players into their sides, then mark the winning player or team. Leaving winners unticked reports a draw when allowed.'}</p>
 		</section>
 
+		{#if savedReport}
+			<section class="card saved-report" tabindex="-1" bind:this={savedPanel} aria-labelledby="saved-heading">
+				<div role="status">
+					<p class="label-caps">{savedReport.mode === 'team' ? 'Team' : savedReport.mode === 'ffa' ? 'Free-for-all' : '1v1'} · {savedReport.playedAt}</p>
+					<h2 id="saved-heading">{editing ? 'Match changes saved' : 'Match saved'}</h2>
+					<p class="hint">{reportSaved ? 'Your result was recorded. There is no need to submit it again.' : 'Ready for the next match. Players, teams and date are kept; choose the next result.'}</p>
+				</div>
+				<ul class="saved-standings">{#each savedReport.standings as standing}<li>{standing.place} · {standing.side}</li>{/each}</ul>
+				<ul class="saved-deltas" aria-label="Rating changes">
+					{#each savedReport.deltas as delta}
+						<li><span>{delta.handle}{#if delta.unclaimed} <span class="unclaimed-badge">Unclaimed</span>{/if}</span><strong>{delta.delta >= 0 ? '+' : ''}{Math.round(delta.delta * 10) / 10}</strong><span class="muted">{Math.round(delta.newRating)}</span></li>
+					{/each}
+				</ul>
+				{#if navigationError}<p class="alert-err" role="alert">{navigationError}</p>{/if}
+				<div class="report-actions">
+					{#if !editing}
+						{#if reportSaved}<button class="btn btn-primary" disabled={openingLeaderboard} onclick={() => prepareNextMatch()}>Log another match</button>{/if}
+						<button class="btn btn-secondary" disabled={openingLeaderboard || submitting || creatingPlayer} onclick={() => prepareNextMatch(true)}>Change players</button>
+					{/if}
+					<button class="btn btn-secondary" disabled={openingLeaderboard || submitting || creatingPlayer} onclick={viewLeaderboard}>{openingLeaderboard ? 'Opening leaderboard…' : 'View leaderboard'}</button>
+				</div>
+			</section>
+		{/if}
+
 		<section class="card form-shell">
 			<div class="community-banner"><span class="community-avatar">{avatar(community?.name ?? 'Community')}</span><div><p class="label-caps">Community</p><strong>{community?.name ?? communityId}</strong><p class="hint">{community?.draws ? 'Draws allowed' : 'No draws'} · {players.length} players on the roster</p></div><a class="btn btn-ghost" href={`${base}/communities`}>Change</a></div>
+			<fieldset class="match-fields" disabled={submitting || reportSaved || openingLeaderboard}>
 			<div class="match-date">
 				<label for="played-date">Date played</label>
 				<input id="played-date" class="text-input" type="date" required bind:value={playedDate} disabled={submitting} onchange={() => (review = false)} />
@@ -287,7 +376,7 @@
 				</div>
 
 				<div class="player-picker">
-					<input class="text-input player-search" placeholder="Search players by name…" aria-label="Search players" bind:value={playerSearch} />
+					<input class="text-input player-search" placeholder="Search players by name…" aria-label="Search players" bind:value={playerSearch} bind:this={searchInput} />
 					{#each visiblePlayers as p}
 						<label class="player-option" class:sel={selected.includes(p.playerId)}>
 							<input type="checkbox" checked={selected.includes(p.playerId)} onchange={() => toggle(p.playerId)} />
@@ -344,7 +433,7 @@
 								{:else}
 									<div class="team-list">
 										{#each playersForTeam(team) as id}
-											<div class="team-player" draggable="true" ondragstart={() => (draggedId = id)} ondragend={() => (draggedId = null)}>
+											<div class="team-player" draggable={!submitting && !reportSaved && !openingLeaderboard} ondragstart={() => (draggedId = id)} ondragend={() => (draggedId = null)}>
 												<span class="avatar">{playerAvatar(id)}</span>
 												<span>{playerName(id)}{#if isUnclaimed(id)} <span class="unclaimed-badge">Unclaimed</span>{/if}</span>
 											</div>
@@ -357,7 +446,7 @@
 				{/if}
 			</div>
 
-			{#if error}<p class="alert-err">{error}</p>{/if}
+			{#if error}<p class="alert-err" role="alert">{error}</p>{/if}
 			{#if review}
 				<div class="review" aria-live="polite">
 					<div class="review-head">
@@ -395,17 +484,31 @@
 				</div>
 			{/if}
 
-			<div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
+			<div class="report-actions">
 				<a class="btn btn-secondary" href={editing ? `${base}/history?communityId=${encodeURIComponent(communityId)}` : leaderboardHref}>Cancel</a>
-				<button class="btn btn-primary" disabled={submitting || creatingPlayer} onclick={() => (review ? submit() : (review = true))}>
-					{submitting ? 'Saving…' : review ? (editing ? 'Save changes' : 'Confirm report') : (editing ? 'Review changes' : 'Review report')}
+				{#if review && !editing}
+					<button class="btn btn-secondary" disabled={submitting || creatingPlayer} onclick={() => submit('leaderboard')}>{submitting ? 'Saving…' : 'Save & view leaderboard'}</button>
+				{/if}
+				<button class="btn btn-primary" disabled={submitting || creatingPlayer} onclick={() => (review ? submit(editing ? 'leaderboard' : 'another') : (review = true))}>
+					{submitting ? 'Saving…' : review ? (editing ? 'Save changes' : 'Save & log another') : (editing ? 'Review changes' : 'Review report')}
 				</button>
 			</div>
+			</fieldset>
 		</section>
 	</div>
 </div>
 
 <style>
+	.match-fields { border:0; padding:0; margin:0; min-width:0; }
+	.report-actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
+	.saved-report { padding:24px; border-color:var(--ok); }
+	.saved-report:focus { outline:2px solid var(--ok); outline-offset:3px; }
+	.saved-report h2 { font-size:22px; margin-bottom:8px; }
+	.saved-report .label-caps { color:var(--ok); margin-bottom:8px; }
+	.saved-standings { list-style:none; display:flex; flex-wrap:wrap; gap:8px 20px; font-size:13px; margin-bottom:12px; }
+	.saved-deltas { list-style:none; margin-bottom:18px; }
+	.saved-deltas li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:12px; padding:8px 0; border-top:1px solid var(--theme-border); font-size:14px; }
+	.saved-deltas li > span:first-child { overflow-wrap:anywhere; }
 	.match-date { display:grid; gap:8px; margin-bottom:24px; }
 	.match-date label { font-size:13px; font-weight:700; }
 	.match-date input { width:100%; max-width:240px; min-width:0; color-scheme:dark; }

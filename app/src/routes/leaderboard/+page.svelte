@@ -14,13 +14,7 @@
 	let toast = $state<{ text: string; tone: 'ok' | 'error' } | null>(null);
 	let toastTimer: ReturnType<typeof setTimeout> | undefined;
 	let authenticated = $state(false);
-	type ReportSummary = {
-		communityId: string;
-		mode: Mode;
-		standings: { place: string; side: string; won: boolean }[];
-		deltas: { playerId: string; handle: string; unclaimed?: boolean; delta: number; newRating: number }[];
-	};
-	let lastReport = $state<ReportSummary | null>(null);
+	let lastReport = $state<App.PageState['reportedMatch']>();
 	let switchingMode = $state<Mode | null>(null);
 	const rows = $derived((data.rows as LeaderboardRow[]) ?? []);
 	const activeMode = $derived(($page.url.searchParams.get('mode') as Mode) || '1v1');
@@ -44,18 +38,13 @@
 			showToast(joined === 'pending' ? `Join request sent to ${community?.name ?? 'the community'}.` : `You joined ${community?.name ?? 'the community'}.`);
 			const clean = new URL($page.url);
 			clean.searchParams.delete('joined');
-			replaceState(`${clean.pathname}${clean.search}`, {});
+			replaceState(`${clean.pathname}${clean.search}`, $page.state);
 		}
 		// One-shot handoff from the report page so the reporter sees what was captured.
-		const stored = sessionStorage.getItem('open-skill.last-report');
-		if (stored) {
-			sessionStorage.removeItem('open-skill.last-report');
-			try {
-				const parsed = JSON.parse(stored) as ReportSummary;
-				if (parsed.communityId === communityId) lastReport = parsed;
-			} catch {
-				// Ignore a malformed handoff.
-			}
+		const reportedMatch = $page.state.reportedMatch;
+		if (reportedMatch) {
+			if (reportedMatch.communityId === communityId) lastReport = reportedMatch;
+			replaceState($page.url, { ...$page.state, reportedMatch: undefined });
 		}
 		return () => window.removeEventListener(AUTH_CHANGE_EVENT, sync);
 	});
@@ -128,7 +117,7 @@
 					<p class="label-caps">Match reported</p>
 					<h2>{modeLabel(lastReport.mode)} result recorded</h2>
 				</div>
-				<button class="btn btn-ghost" onclick={() => (lastReport = null)}>Dismiss</button>
+				<button class="btn btn-ghost" onclick={() => (lastReport = undefined)}>Dismiss</button>
 			</div>
 			<div class="report-grid">
 				<div>
