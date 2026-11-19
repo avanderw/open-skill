@@ -63,6 +63,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/profile/{id}/claims/{user}/approve", s.handleApprovePlayerClaim)
 	mux.HandleFunc("DELETE /api/profile/{id}/claims/{user}", s.handleRejectPlayerClaim)
 	mux.HandleFunc("GET /api/history", s.handleHistory)
+	mux.HandleFunc("GET /api/history/players", s.handleHistoryPlayers)
 	mux.HandleFunc("POST /api/matches", s.handleReportMatch)
 	mux.HandleFunc("GET /api/matches/{id}", s.handleGetMatch)
 	mux.HandleFunc("PUT /api/matches/{id}", s.handleUpdateMatch)
@@ -471,6 +472,27 @@ func (s *Server) handleLeaderboardModes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeJSON(w, http.StatusOK, modes)
+}
+
+func (s *Server) handleHistoryPlayers(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.actorOrUnauthorized(w, r); !ok {
+		return
+	}
+	communityID := r.URL.Query().Get("communityId")
+	if communityID == "" {
+		writeErr(w, http.StatusBadRequest, "communityId is required")
+		return
+	}
+	players, err := s.store.HistoryPlayers(r.Context(), communityID)
+	if errors.Is(err, store.ErrNotFound) {
+		writeErr(w, http.StatusNotFound, "community not found")
+		return
+	}
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "history players: %v", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, players)
 }
 
 func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {

@@ -85,6 +85,30 @@ independent API reads concurrently, and reporting does not invalidate the report
 page before navigation. These changes do not alter backend match ordering or
 rating recalculation.
 
+### Filtering match history
+
+History combines **Community**, **Player**, and match-mode filters. Choose a value
+in either searchable picker to apply it immediately; the picker is a bottom sheet
+on mobile. With both scopes selected, **All players** or **All communities** clears
+just that filter. Keep at least one scope selected; a bare `/history` opens your
+own history rather than implying a global feed.
+
+Filters are stored in `playerId`, `communityId`, and `mode` URL parameters, so
+refresh, shared links, and browser Back/Forward retain the view. Mode changes
+reload only matches, not the scope metadata. Empty intersections keep the chosen
+filters and show an explicit no-results message.
+
+Community player options include the full current roster, unclaimed players, and
+former participants, independently of the displayed 50 matches or leaderboard
+limits. With a player selected, community options come from their ratings,
+their unclaimed-player home community, and the currently selected community.
+Choose a community before browsing a different player. Without a player filter,
+the community picker lists your communities and the currently selected community.
+
+Profile community sections link directly to that player's history in the
+community. Match participant profile links remain unchanged; a separate **History
+here** link filters to that participant in the match's community, preserving mode.
+
 ## Building
 
 To create a production version of your app:

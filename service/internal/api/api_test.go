@@ -12,6 +12,40 @@ import (
 	"open-skill/service/internal/store"
 )
 
+func TestHistoryPlayerOptions(t *testing.T) {
+	st := newReportTestStore(t)
+	defer st.Close()
+	for _, test := range []struct {
+		name string
+		path string
+		demo bool
+		want int
+	}{
+		{"authenticated roster", "/api/history/players?communityId=c_test", true, http.StatusOK},
+		{"missing scope", "/api/history/players", true, http.StatusBadRequest},
+		{"unknown community", "/api/history/players?communityId=missing", true, http.StatusNotFound},
+		{"requires authentication", "/api/history/players?communityId=c_test", false, http.StatusUnauthorized},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, test.path, nil)
+			res := httptest.NewRecorder()
+			New(st, AuthConfig{Demo: test.demo}).Handler().ServeHTTP(res, req)
+			if res.Code != test.want {
+				t.Fatalf("status = %d, want %d; body = %s", res.Code, test.want, res.Body.String())
+			}
+			if test.want == http.StatusOK {
+				var players []store.HistoryPlayer
+				if err := json.Unmarshal(res.Body.Bytes(), &players); err != nil {
+					t.Fatal(err)
+				}
+				if len(players) != 1 || players[0].PlayerID != "p_demo" || players[0].Handle != "Owner" || players[0].Unclaimed {
+					t.Fatalf("options = %+v, want the owner", players)
+				}
+			}
+		})
+	}
+}
+
 func TestReportMatchRejectsParticipantOutsideCommunity(t *testing.T) {
 	st, err := store.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

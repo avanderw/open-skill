@@ -382,6 +382,44 @@ type ParticipantHistory struct {
 	RatingDelta float64 `json:"ratingDelta"`
 }
 
+type HistoryPlayer struct {
+	PlayerID  string `json:"playerId"`
+	Handle    string `json:"handle"`
+	Unclaimed bool   `json:"unclaimed"`
+}
+
+// HistoryPlayers includes the current roster and former participants, without a leaderboard limit.
+func (s *Store) HistoryPlayers(ctx context.Context, communityID string) ([]HistoryPlayer, error) {
+	if _, err := s.FindCommunityByID(ctx, communityID); err != nil {
+		return nil, err
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT p.id, p.handle, p.user_id IS NULL
+		FROM players p
+		WHERE EXISTS (
+			SELECT 1 FROM community_members cm WHERE cm.community_id = ? AND cm.user_id = p.user_id
+		) OR p.user_id = (SELECT owner_id FROM communities WHERE id = ?)
+		OR (p.user_id IS NULL AND p.community_id = ?)
+		OR EXISTS (
+			SELECT 1 FROM match_participants mp JOIN matches m ON m.id = mp.match_id
+			WHERE mp.player_id = p.id AND m.community_id = ?
+		)
+		ORDER BY p.handle COLLATE NOCASE, p.id`, communityID, communityID, communityID, communityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	players := []HistoryPlayer{}
+	for rows.Next() {
+		var player HistoryPlayer
+		if err := rows.Scan(&player.PlayerID, &player.Handle, &player.Unclaimed); err != nil {
+			return nil, err
+		}
+		players = append(players, player)
+	}
+	return players, rows.Err()
+}
+
 // History lists matches, optionally narrowed to one player, community or mode.
 func (s *Store) History(ctx context.Context, playerID, communityID string, mode model.Mode, limit, offset int) ([]MatchHistory, error) {
 	if limit <= 0 || limit > 100 {

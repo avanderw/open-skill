@@ -122,6 +122,12 @@ export interface MatchResult {
 	participants: { playerId: string; handle?: string; unclaimed: boolean; team: string; score: number; finish: number; ratingDelta: number }[];
 }
 
+export interface HistoryPlayer {
+	playerId: string;
+	handle: string;
+	unclaimed: boolean;
+}
+
 // Empty base keeps requests same-origin (Vite proxy in dev, nginx in Docker).
 const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
 
@@ -203,6 +209,8 @@ export function createApi(fetcher: typeof globalThis.fetch = globalThis.fetch, b
 			if (opts?.offset !== undefined) params.set('offset', String(opts.offset));
 			return req<MatchResult[]>(`/api/history?${params}`);
 		},
+		historyPlayers: (communityId: string) =>
+			req<HistoryPlayer[]>(`/api/history/players?${new URLSearchParams({ communityId })}`),
 		profile: (id: string) => req<Profile>(`/api/profile/${encodeURIComponent(id)}`),
 		playerClaims: (id: string) => req<PlayerClaimRequest[]>(`/api/profile/${encodeURIComponent(id)}/claims`),
 		requestPlayerClaim: (id: string) => req<{ ok: boolean }>(`/api/profile/${encodeURIComponent(id)}/claims`, { method: 'POST' }),

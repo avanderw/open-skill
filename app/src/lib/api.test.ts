@@ -70,6 +70,18 @@ describe('API client contract', () => {
 		expect(fetcher.mock.calls[0]![0]).toBe('/api/history?playerId=p%2Fone&limit=0&offset=0');
 	});
 
+	it('combines history scopes and requests uncapped community player options', async () => {
+		installLocalStorage();
+		const fetcher = vi.fn<typeof fetch>(async () => response([]));
+		const client = createApi(fetcher);
+		await client.history('p/one', { communityId: 'c&two', mode: 'team', limit: 50 });
+		await client.historyPlayers('c&two');
+		expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+			'/api/history?playerId=p%2Fone&communityId=c%26two&mode=team&limit=50',
+			'/api/history/players?communityId=c%26two'
+		]);
+	});
+
 	it('uses the API error message from JSON responses', async () => {
 		installLocalStorage();
 		const fetcher = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () => response({ error: 'membership required' }, { status: 403 }));

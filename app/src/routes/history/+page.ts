@@ -1,12 +1,21 @@
 import type { PageLoad } from './$types';
-import { createApi, type Community, type MatchResult } from '$lib/api';
+import { error } from '@sveltejs/kit';
+import { createApi } from '$lib/api';
 
-export const load: PageLoad = async ({ fetch, url }) => {
+export const load: PageLoad = async ({ fetch, url, parent }) => {
 	const api = createApi(fetch);
 	const playerId = url.searchParams.get('playerId') || '';
 	const communityId = url.searchParams.get('communityId') || '';
-	const history: MatchResult[] = await api.history(playerId, { communityId: communityId || undefined, limit: 50 });
-	const community: Community | null = communityId ? await api.findCommunity(communityId).catch(() => null) : null;
-	const membership = communityId ? await api.membership(communityId).catch(() => null) : null;
-	return { playerId, communityId, history, community, canManage: membership?.canManage ?? false };
+	const mode = url.searchParams.get('mode') || '';
+	if (mode !== '' && mode !== '1v1' && mode !== 'team' && mode !== 'ffa') {
+		error(400, 'Invalid match mode');
+	}
+	if (!playerId && !communityId) {
+		await parent();
+		error(400, 'Choose a player or community');
+	}
+	const history = await api.history(playerId, {
+		communityId: communityId || undefined, mode: mode || undefined, limit: 50
+	});
+	return { history, mode };
 };
