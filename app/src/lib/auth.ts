@@ -16,6 +16,7 @@ export const DEMO_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEMO_AUTH =
 
 export const AUTH_CHANGE_EVENT = 'auth-change';
 const DEMO_STORAGE_KEY = 'open-skill.demo-auth';
+const RETURNING_USER_KEY = 'open-skill.has-signed-in';
 
 export type AuthProvider = 'google' | 'github';
 
@@ -24,6 +25,7 @@ let ready: Promise<void> | undefined;
 
 function firebaseAuth(): Auth {
 	if (!auth) {
+		performance.mark('open-skill:firebase-init-start');
 		const app = initializeApp({
 			apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
 			authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -31,8 +33,26 @@ function firebaseAuth(): Auth {
 			appId: import.meta.env.VITE_FIREBASE_APP_ID
 		});
 		auth = getAuth(app);
+		performance.measure('open-skill:firebase-init', 'open-skill:firebase-init-start');
 	}
 	return auth;
+}
+
+export function hasSignedInBefore(): boolean {
+	try {
+		return localStorage.getItem(RETURNING_USER_KEY) === 'true';
+	} catch (error) {
+		console.warn('Unable to read the returning-user preference.', error);
+		return false;
+	}
+}
+
+function rememberSignIn(): void {
+	try {
+		localStorage.setItem(RETURNING_USER_KEY, 'true');
+	} catch (error) {
+		console.warn('Unable to save the returning-user preference.', error);
+	}
 }
 
 function notify() {
@@ -43,9 +63,19 @@ function notify() {
 export function authReady(): Promise<void> {
 	if (DEMO_AUTH || typeof window === 'undefined') return Promise.resolve();
 	if (!ready) {
-		const a = firebaseAuth();
-		ready = a.authStateReady().then(() => {
-			onAuthStateChanged(a, notify);
+		performance.mark('open-skill:session-start');
+		ready = Promise.resolve().then(async () => {
+			const a = firebaseAuth();
+			await a.authStateReady();
+			performance.measure('open-skill:session-restore', 'open-skill:session-start');
+			onAuthStateChanged(a, (user) => {
+				if (user) rememberSignIn();
+				notify();
+			});
+			if (a.currentUser) rememberSignIn();
+		}).catch((error: unknown) => {
+			ready = undefined;
+			throw error;
 		});
 	}
 	return ready;
@@ -58,11 +88,13 @@ export function isAuthenticated(): boolean {
 
 export async function signIn(provider: AuthProvider): Promise<void> {
 	await signInWithPopup(firebaseAuth(), provider === 'google' ? new GoogleAuthProvider() : new GithubAuthProvider());
+	rememberSignIn();
 }
 
 export function loginDemo(): void {
 	if (DEMO_AUTH && typeof localStorage !== 'undefined') {
 		localStorage.setItem(DEMO_STORAGE_KEY, 'true');
+		rememberSignIn();
 		notify();
 	}
 }

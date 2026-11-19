@@ -30,6 +30,8 @@
 		authReady().then(() => {
 			sync();
 			hydrated = true;
+		}).catch((error: unknown) => {
+			console.error('Unable to restore the saved session.', error);
 		});
 		window.addEventListener(AUTH_CHANGE_EVENT, sync);
 		return () => window.removeEventListener(AUTH_CHANGE_EVENT, sync);
